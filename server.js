@@ -6,13 +6,10 @@ const cookieParser = require("cookie-parser");
 const authRoutes = require("./routes/auth/index.js");
 const serviceRoutes = require("./routes/service/index.js");
 const connectDB = require("./config/db.js");
-const multer = require("multer");
 
 connectDB();
 
 const app = express();
-const upload = multer();
-app.use(upload.any());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

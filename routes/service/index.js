@@ -4,11 +4,10 @@ const { admin } = require("../../middleware/authMiddleware.js");
 const multer = require("multer");
 const { storage } = require("../../config/multer.js");
 const router = express.Router();
-const multer = require("multer");
 
-const upload = multer();
+const upload = multer({ storage: storage });
 
-router.post("/", admin, upload.none(), ServiceController.createService);
+router.post("/", admin, upload.array("images"), ServiceController.createService);
 router.get("/", ServiceController.getAllServices);
 router.get("/:id", admin, ServiceController.getServiceById);
 router.put("/:id", admin, ServiceController.updateService);

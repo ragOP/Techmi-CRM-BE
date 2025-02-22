@@ -15,6 +15,7 @@ exports.uploadMultipleFiles = async (files, folder = "") => {
   try {
     const uploadedUrls = [];
     for (const file of files) {
+      console.log(file.path, "<<<<<< file");
       const result = await cloudinary_js_config.uploader.upload(file.path, { folder });
       uploadedUrls.push(result.secure_url);
       await fs.unlink(file.path);

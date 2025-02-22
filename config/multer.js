@@ -21,7 +21,7 @@ const storage = multer.diskStorage({
       return cb(new Error("Invalid file type."));
     }
 
-    const uploadPath = path.join(__dirname, "../../uploads", folder);
+    const uploadPath = path.join(__dirname, "../uploads", folder);
     cb(null, uploadPath);
   },
 

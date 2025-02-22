@@ -2,6 +2,7 @@ const { asyncHandler } = require("../../common/asyncHandler.js");
 const ApiResponse = require("../../utils/ApiResponse.js");
 const ServiceRepository = require("../../repositories/service/index.js");
 const mongoose = require("mongoose");
+const { uploadMultipleFiles } = require("../../utils/upload/index.js");
 
 const getAllServices = asyncHandler(async (req, res) => {
   const services = await ServiceRepository.getAllServices();
@@ -26,8 +27,14 @@ const getServiceById = asyncHandler(async (req, res) => {
 });
 
 const createService = asyncHandler(async (req, res) => {
-  console.log(req.body)
-  const service = await ServiceRepository.createService(req.body);
+  const images = req.files;
+  if (!images) {
+    return res.json(new ApiResponse(404, null, "No Image Found", false));
+  }
+  const imageUrls = await uploadMultipleFiles(images, "uploads/images");
+
+  const serviceData = { ...req.body, images: imageUrls };
+  const service = await ServiceRepository.createService(serviceData);
   res.json(new ApiResponse(201, service, "Service created successfully", true));
 });
 

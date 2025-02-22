@@ -7,8 +7,8 @@ const router = express.Router();
 const upload = multer({ storage: storage });
 
 router.route("/").post(admin, upload.array("images"), ServiceController.createService);
+router.route("/").get(ServiceController.getAllServices);
 router.route("/:id").get(ServiceController.getServiceById);
-router.route("/:id").get(admin, ServiceController.getServiceById);
 router.route("/:id").put(admin, ServiceController.updateService);
 router.route("/:id").delete(admin, ServiceController.deleteService);
 

@@ -4,12 +4,14 @@ const { admin } = require("../../middleware/authMiddleware.js");
 const multer = require("multer");
 const { storage } = require("../../config/multer.js");
 const router = express.Router();
-const upload = multer({ storage: storage });
+const multer = require("multer");
 
-router.route("/").post(admin, upload.array("images"), ServiceController.createService);
-router.route("/").get(ServiceController.getAllServices);
-router.route("/:id").get(ServiceController.getServiceById);
-router.route("/:id").put(admin, ServiceController.updateService);
-router.route("/:id").delete(admin, ServiceController.deleteService);
+const upload = multer();
+
+router.post("/", admin, upload.none(), ServiceController.createService);
+router.get("/", ServiceController.getAllServices);
+router.get("/:id", admin, ServiceController.getServiceById);
+router.put("/:id", admin, ServiceController.updateService);
+router.delete("/:id", admin, ServiceController.deleteService);
 
 module.exports = router;

@@ -16,7 +16,7 @@ const sendRefreshToken = (res, token) => {
 
 // Register User
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, is_super_admin } = req.body;
   const userExists = await User.findOne({ email });
 
   if (userExists) {
@@ -25,7 +25,7 @@ const registerUser = asyncHandler(async (req, res) => {
       .json(new ApiResponse(404, null, "User already exists", false));
   }
 
-  const user = await User.create({ name, email, password });
+  const user = await User.create({ name, email, password, is_super_admin });
 
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);

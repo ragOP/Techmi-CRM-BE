@@ -1,11 +1,11 @@
-const { asyncHandler } = require("../../common/asyncHandler.js");
-const ApiResponse = require("../../utils/ApiResponse.js");
-const ServiceRepository = require("../../repositories/service/index.js");
 const mongoose = require("mongoose");
+const ApiResponse = require("../../utils/ApiResponse.js");
+const ServiceServices = require("../../services/service/index.js");
+const { asyncHandler } = require("../../common/asyncHandler.js");
 const { uploadMultipleFiles } = require("../../utils/upload/index.js");
 
 const getAllServices = asyncHandler(async (req, res) => {
-  const services = await ServiceRepository.getAllServices();
+  const services = await ServiceServices.getAllServices();
   res.json(
     new ApiResponse(200, services, "Services fetched successfully", true)
   );
@@ -18,7 +18,7 @@ const getServiceById = asyncHandler(async (req, res) => {
     return res.json(new ApiResponse(400, null, "Invalid service ID", false));
   }
 
-  const service = await ServiceRepository.getServiceById(id);
+  const service = await ServiceServices.getServiceById(id);
   if (!service) {
     return res.json(new ApiResponse(404, null, "Service not found", false));
   }
@@ -33,16 +33,17 @@ const createService = asyncHandler(async (req, res) => {
   }
   const imageUrls = await uploadMultipleFiles(images, "uploads/images");
 
-  const serviceData = { ...req.body, images: imageUrls };
-  const service = await ServiceRepository.createService(serviceData);
+  let serviceData = { ...req.body, images: imageUrls };
+  if (serviceData?.meta_data) {
+    serviceData.meta_data = JSON.parse(serviceData.meta_data);
+  }
+
+  const service = await ServiceServices.createService(serviceData);
   res.json(new ApiResponse(201, service, "Service created successfully", true));
 });
 
 const updateService = asyncHandler(async (req, res) => {
-  const service = await ServiceRepository.updateService(
-    req.params.id,
-    req.body
-  );
+  const service = await ServiceServices.updateService(req.params.id, req.body);
   if (!service) {
     return res.json(new ApiResponse(404, null, "Service not found", false));
   }
@@ -51,7 +52,7 @@ const updateService = asyncHandler(async (req, res) => {
 });
 
 const deleteService = asyncHandler(async (req, res) => {
-  const service = await ServiceRepository.deleteService(req.params.id);
+  const service = await ServiceServices.deleteService(req.params.id);
   if (!service) {
     return res.json(new ApiResponse(404, null, "Service not found", false));
   }

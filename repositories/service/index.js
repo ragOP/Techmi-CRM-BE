@@ -1,4 +1,13 @@
 const Services = require("../../models/servicesModel");
+const User = require("../../models/userModel");
+
+const getAllServicesForSuperAdmins = async () => {
+  const superAdmin = await User.findOne({ is_super_admin: true }).select("_id");
+  console.log(superAdmin, ">>>> superAdmin", await User.find());
+  if (!superAdmin) return [];
+
+  return await Services.find({ created_by_admin: superAdmin._id });
+};
 
 const getAllServices = async () => {
   return await Services.find();
@@ -21,6 +30,7 @@ const deleteService = async (id) => {
 };
 
 module.exports = {
+  getAllServicesForSuperAdmins,
   getAllServices,
   getServiceById,
   createService,

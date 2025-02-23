@@ -1,7 +1,8 @@
+const User = require("../../models/userModel.js");
 const ServiceRepository = require("../../repositories/service/index.js");
 
 const getAllServices = async () => {
-  return await ServiceRepository.getAllServices();
+  return await ServiceRepository.getAllServicesForSuperAdmins();
 };
 
 const getServiceById = async (id) => {
@@ -20,7 +21,7 @@ const deleteService = async (id) => {
   return await ServiceRepository.deleteService(id);
 };
 
-export default {
+module.exports = {
   getAllServices,
   getServiceById,
   createService,

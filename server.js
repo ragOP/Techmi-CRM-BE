@@ -3,9 +3,13 @@ const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
+const connectDB = require("./config/db.js");
+const swaggerSpec = require("./swagger.js");
+const swaggerUI = require("swagger-ui-express");
 const authRoutes = require("./routes/auth/index.js");
 const serviceRoutes = require("./routes/service/index.js");
-const connectDB = require("./config/db.js");
+const categoryRoutes = require("./routes/category/index.js");
+const productRoutes = require("./routes/product/index.js");
 
 connectDB();
 
@@ -19,6 +23,10 @@ app.use(morgan("dev"));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/service", serviceRoutes);
+app.use("/api/category", categoryRoutes);
+app.use("/api/product", productRoutes);
+
+app.use("/api-doc", swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 
 app.use((req, res) => res.status(404).json({ message: "Route not found" }));
 

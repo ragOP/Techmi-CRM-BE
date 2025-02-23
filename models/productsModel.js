@@ -1,44 +1,68 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
+const { type } = require("os");
 
-const ServicesSchema = new mongoose.Schema(
+const ProductSchema = new mongoose.Schema(
   {
     name: {
       type: String,
       required: true,
       maxlength: 255,
     },
-    slug: {
+    small_desc: {
       type: String,
+    },
+    full_desc: {
+      type: String,
+    },
+    price: {
+      type: mongoose.Schema.Types.Decimal128,
       required: true,
-      unique: true,
+    },
+    discounted_price: {
+      type: mongoose.Schema.Types.Decimal128,
+    },
+    instock: {
+      type: Boolean,
+      default: true,
+    },
+    manufacturer: {
+      type: String,
       maxlength: 255,
     },
-    description: {
+    consumed_type: {
       type: String,
+      maxlength: 255,
     },
-    meta_data: {
-      type: mongoose.Schema.Types.Mixed,
+    banner_image: {
+      type: String,
     },
     images: {
       type: [String],
       default: [],
     },
-    categories: {
-      type: [mongoose.Schema.Types.Mixed],
-      default: [],
-    },
-    created_at: {
+    expiry_date: {
       type: Date,
-      default: Date.now,
     },
-    created_by_admin: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Admin",
+    meta_data: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+    uploaded_by_brand: {
+      type: String,
+      maxlength: 255,
+    },
+    is_best_seller: {
+      type: Boolean,
+      default: false,
+    },
+    category: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: "Category",
       required: true,
     },
   },
   { timestamps: true }
 );
 
-const Services = mongoose.model("Services", ServicesSchema);
-export default Services;
+const Product = mongoose.model("Product", ProductSchema);
+module.exports = Product;

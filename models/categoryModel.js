@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const CategorySchema = new mongoose.Schema(
   {
@@ -16,7 +16,9 @@ const CategorySchema = new mongoose.Schema(
       maxlength: 255,
     },
     meta_data: {
-      type: mongoose.Schema.Types.Mixed,
+      type: Map,
+      of: mongoose.Schema.Types.Mixed,
+      default: {},
     },
     newly_launched: {
       type: Boolean,
@@ -40,7 +42,7 @@ const CategorySchema = new mongoose.Schema(
       ref: "SuperAdmin",
       required: true,
     },
-    services: {
+    service: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Services",
       required: true,
@@ -50,4 +52,4 @@ const CategorySchema = new mongoose.Schema(
 );
 
 const Category = mongoose.model("Category", CategorySchema);
-export default Category;
+module.exports = Category;

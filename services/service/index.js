@@ -2,7 +2,8 @@ const User = require("../../models/userModel.js");
 const ServiceRepository = require("../../repositories/service/index.js");
 
 const getAllServices = async () => {
-  return await ServiceRepository.getAllServicesForSuperAdmins();
+  // return await ServiceRepository.getAllServicesForSuperAdmins();
+  return await ServiceRepository.getAllServices();
 };
 
 const getServiceById = async (id) => {

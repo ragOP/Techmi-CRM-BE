@@ -22,7 +22,7 @@ const getAllProducts = async ({
   const total = await Product.countDocuments(filter);
 
   return {
-    products,
+    data: products,
     total,
   };
 };

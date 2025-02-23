@@ -28,6 +28,10 @@ app.use("/api/product", productRoutes);
 
 app.use("/api-doc", swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 
+// app.use("/", (req, res) => {
+//   res.json({ message: "Welcome to the API" });
+// });
+
 app.use((req, res) => res.status(404).json({ message: "Route not found" }));
 
 const PORT = process.env.PORT || 5000;

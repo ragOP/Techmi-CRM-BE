@@ -7,7 +7,15 @@ const router = express.Router();
 
 const upload = multer({ storage: storage });
 
-router.post("/", admin, upload.array("images"), ProductsController.createProduct);
+router.post(
+  "/",
+  admin,
+  upload.fields([
+    { name: "banner_image", maxCount: 1 }, 
+    { name: "images", maxCount: 10 }, 
+  ]),
+  ProductsController.createProduct
+);
 router.get("/", ProductsController.getAllProducts);
 router.get("/:id", admin, ProductsController.getProductById);
 router.put("/:id", admin, ProductsController.updateProduct);

@@ -17,7 +17,9 @@ const ServicesSchema = new mongoose.Schema(
       type: String,
     },
     meta_data: {
-      type: Object,
+      type: Map,
+      of: mongoose.Schema.Types.Mixed,
+      default: {},
     },
     images: {
       type: [String],

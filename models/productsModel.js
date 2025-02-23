@@ -8,10 +8,10 @@ const ProductSchema = new mongoose.Schema(
       required: true,
       maxlength: 255,
     },
-    small_desc: {
+    small_description: {
       type: String,
     },
-    full_desc: {
+    full_description: {
       type: String,
     },
     price: {
@@ -44,7 +44,8 @@ const ProductSchema = new mongoose.Schema(
       type: Date,
     },
     meta_data: {
-      type: mongoose.Schema.Types.Mixed,
+      type: Map,
+      of: mongoose.Schema.Types.Mixed,
       default: {},
     },
     uploaded_by_brand: {
@@ -64,5 +65,15 @@ const ProductSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+ProductSchema.set("toJSON", {
+  transform: (_, ret) => {
+    if (ret.price) ret.price = parseFloat(ret.price.toString());
+    if (ret.discounted_price)
+      ret.discounted_price = parseFloat(ret.discounted_price.toString());
+    return ret;
+  },
+});
+
 const Product = mongoose.model("Product", ProductSchema);
+
 module.exports = Product;

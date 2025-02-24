@@ -1,7 +1,7 @@
 const CategoryRepository = require("../../repositories/category/index.js");
 
-const getAllCategory = async () => {
-  return await CategoryRepository.getAllCategory();
+const getAllCategory = async ({ service_id }) => {
+  return await CategoryRepository.getAllCategory({ service_id });
 };
 
 const getCategoryById = async (id) => {

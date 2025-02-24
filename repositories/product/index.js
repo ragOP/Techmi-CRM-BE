@@ -5,6 +5,7 @@ const getAllProducts = async ({
   per_page,
   category_id,
   is_best_seller,
+  search,
 }) => {
   const skip = (page - 1) * per_page;
 
@@ -15,6 +16,10 @@ const getAllProducts = async ({
 
   if (is_best_seller) {
     filter.is_best_seller = is_best_seller;
+  }
+
+  if (search) {
+    filter.name = { $regex: search, $options: "i" };
   }
 
   const products = await Product.find(filter).skip(skip).limit(per_page);

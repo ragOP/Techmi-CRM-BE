@@ -1,7 +1,8 @@
 const Category = require("../../models/categoryModel");
 
-const getAllCategory = async () => {
-  return await Category.find();
+const getAllCategory = async ({ service_id }) => {
+  const filter = service_id ? { service: service_id } : {};
+  return await Category.find(filter);
 };
 
 const getCategoryById = async (id) => {

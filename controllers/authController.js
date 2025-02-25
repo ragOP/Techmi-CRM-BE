@@ -14,6 +14,11 @@ const sendRefreshToken = (res, token) => {
   });
 };
 
+const getAllUsers = asyncHandler(async (req, res) => {
+  const users = await User.find();
+  res.json(new ApiResponse(200, users, "Users fetched successfully", true));
+});
+
 // Register User
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password, is_super_admin } = req.body;
@@ -94,6 +99,7 @@ const logoutUser = (req, res) => {
 };
 
 module.exports = {
+  getAllUsers,
   registerUser,
   loginUser,
   refreshToken,

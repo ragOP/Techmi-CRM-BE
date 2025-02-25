@@ -80,10 +80,12 @@ const {
   loginUser,
   refreshToken,
   logoutUser,
+  getAllUsers,
 } = require("../../controllers/authController");
 
 const router = express.Router();
 
+router.get("/", getAllUsers);
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/refresh", refreshToken);

@@ -11,7 +11,7 @@ const getAllProducts = async ({
 
   const filter = {};
   if (category_id) {
-    filter.category_id = category_id;
+    filter.category = category_id;
   }
 
   if (is_best_seller) {

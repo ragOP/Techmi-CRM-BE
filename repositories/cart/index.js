@@ -2,11 +2,15 @@ const mongoose = require("mongoose");
 const Cart = require("../../models/cartModel");
 
 const getCart = async () => {
-  return await Cart.find();
+  return await Cart.find({});
 };
 
 const getCartByUserId = async ({ user_id }) => {
-  return await Cart.findOne({ user: user_id });
+  if (user_id) {
+    return await Cart.findOne({ user: user_id });
+  }
+
+  return await Cart.find();
 };
 
 const addToCart = async (data) => {
@@ -17,8 +21,8 @@ const updateCartItem = async (id, data) => {
   return await Cart.findByIdAndUpdate(id, data, { new: true });
 };
 
-const removeCartItem = async (id) => {
-  return await Cart.findOneAndDelete({ user: id });
+const deleteCartByUserId = async (id) => {
+  return await Cart.deleteOne({ user: id });
 };
 
 module.exports = {
@@ -26,5 +30,5 @@ module.exports = {
   getCartByUserId,
   addToCart,
   updateCartItem,
-  removeCartItem,
+  deleteCartByUserId,
 };

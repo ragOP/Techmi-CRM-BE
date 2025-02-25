@@ -53,7 +53,7 @@ const updateCart = async (user_id, product_id, quantity) => {
   if (existingItem) {
     if (quantity > 0) {
       existingItem.quantity = quantity;
-      existingItem.total = finalPrice * quantity; 
+      existingItem.total = finalPrice * quantity;
     } else {
       cart.items = cart.items.filter(
         (item) => item.product.toString() !== product_id
@@ -64,7 +64,7 @@ const updateCart = async (user_id, product_id, quantity) => {
       product: product_id,
       quantity,
       price: finalPrice,
-      total: finalPrice * quantity, 
+      total: finalPrice * quantity,
       discount: productData.discount || 0,
       name: productData.name,
       images: productData.images,
@@ -80,18 +80,16 @@ const updateCart = async (user_id, product_id, quantity) => {
   return cart;
 };
 
-const deleteCartItem = async (user_id) => {
-  const cart = await CartRepository.getCartByUserId({ user_id });
-
-  console.log(cart, ">>>>>>>>>>>>>>>>>>>")
-  if (!cart) {
+const deleteCart = async (user_id) => {
+  const deletedCart = await CartRepository.deleteCartByUserId(user_id);
+  if (!deletedCart) {
     throw new ApiResponse(404, null, "Cart not found", false);
   }
-  return await CartRepository.removeCartItem(user_id);
+  return deletedCart;
 };
 
 module.exports = {
   getCart,
   updateCart,
-  deleteCartItem
+  deleteCart,
 };

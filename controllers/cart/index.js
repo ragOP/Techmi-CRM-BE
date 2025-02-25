@@ -11,6 +11,7 @@ const getCart = asyncHandler(async (req, res) => {
   res.json(new ApiResponse(200, cart, "Cart fetched successfully", true));
 });
 
+
 const addToCart = asyncHandler(async (req, res) => {
   const { user_id, product_id, quantity } = req.body;
 

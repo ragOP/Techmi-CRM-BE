@@ -4,7 +4,7 @@ const getCart = async () => {
   return await Cart.find();
 };
 
-const getCartByUserId = async (user_id) => {
+const getCartByUserId = async ({user_id}) => {
     return await Cart.findOne({ user: user_id });
   };
 

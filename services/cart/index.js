@@ -3,7 +3,7 @@ const ProductRepository = require("../../repositories/product/index.js");
 const ApiResponse = require("../../utils/ApiResponse.js");
 
 const getCart = async ({ user_id }) => {
-  return await CartRepository.getCart({ user_id });
+  return await CartRepository.getCartByUserId({ user_id });
 };
 
 const updateCart = async (user_id, product_id, quantity) => {

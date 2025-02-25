@@ -11,7 +11,6 @@ const getCart = asyncHandler(async (req, res) => {
   res.json(new ApiResponse(200, cart, "Cart fetched successfully", true));
 });
 
-
 const addToCart = asyncHandler(async (req, res) => {
   const { user_id, product_id, quantity } = req.body;
 
@@ -21,7 +20,17 @@ const addToCart = asyncHandler(async (req, res) => {
   );
 });
 
+const deleteCartItem = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const cartItem = await CartService.deleteCartItem(id);
+  res.json(
+    new ApiResponse(200, cartItem, "Item removed from cart successfully", true)
+  );
+});
+
 module.exports = {
   getCart,
   addToCart,
+  deleteCartItem,
 };

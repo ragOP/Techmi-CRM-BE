@@ -1,3 +1,4 @@
+const Cart = require("../../models/cartModel.js");
 const CartRepository = require("../../repositories/cart/index.js");
 const ProductRepository = require("../../repositories/product/index.js");
 const ApiResponse = require("../../utils/ApiResponse.js");
@@ -7,17 +8,12 @@ const getCart = async ({ user_id }) => {
 };
 
 const updateCart = async (user_id, product_id, quantity) => {
-  let cart = await CartRepository.getCartByUserId(user_id);
+  let cart = await CartRepository.getCartByUserId({ user_id });
 
-  // 🔥 If no product_id is provided, deactivate or remove the cart
-  if (!product_id) {
-    if (cart) {
-      await CartRepository.deleteCart(cart._id);
-    }
-    return null;
+  if (quantity < 0) {
+    throw new ApiResponse(400, null, "Invalid quantity", false);
   }
 
-  // Fetch product details
   const productData = await ProductRepository.getProductById(product_id);
   if (!productData) {
     throw new ApiResponse(404, null, "Product not found", false);
@@ -28,7 +24,6 @@ const updateCart = async (user_id, product_id, quantity) => {
   );
 
   if (!cart) {
-    // Create a new cart ONLY if an item is being added
     if (quantity > 0) {
       cart = await CartRepository.addToCart({
         user: user_id,
@@ -38,7 +33,11 @@ const updateCart = async (user_id, product_id, quantity) => {
             product: product_id,
             quantity,
             price: finalPrice,
+            total: finalPrice * quantity,
             discount: productData.discount || 0,
+            name: productData.name,
+            images: productData.images,
+            description: productData.description,
           },
         ],
         is_active: true,
@@ -47,45 +46,52 @@ const updateCart = async (user_id, product_id, quantity) => {
     return cart;
   }
 
-  // 🔍 Find the product in the cart
-  const existingItemIndex = cart.items.findIndex(
+  const existingItem = cart.items.find(
     (item) => item.product.toString() === product_id
   );
 
-  if (existingItemIndex !== -1) {
-    const existingItem = cart.items[existingItemIndex];
-
+  if (existingItem) {
     if (quantity > 0) {
       existingItem.quantity = quantity;
-      existingItem.price = finalPrice * quantity;
-      existingItem.discount = productData.discount || 0;
+      existingItem.total = finalPrice * quantity; 
     } else {
-      cart.items.splice(existingItemIndex, 1); // Remove the product from cart
+      cart.items = cart.items.filter(
+        (item) => item.product.toString() !== product_id
+      );
     }
   } else if (quantity > 0) {
     cart.items.push({
       product: product_id,
       quantity,
       price: finalPrice,
+      total: finalPrice * quantity, 
       discount: productData.discount || 0,
+      name: productData.name,
+      images: productData.images,
+      description: productData.description,
     });
   }
 
-  // 🔄 Recalculate total price
-  cart.total_price = cart.items.reduce((sum, item) => sum + item.price, 0);
+  cart.total_price = cart.items.reduce((sum, item) => sum + item.total, 0);
 
-  // 🛑 If cart is empty, deactivate it
-  if (cart.items.length === 0) {
-    cart.is_active = false;
-    await cart.save();
-    return null;
-  }
+  cart.is_active = cart.items.length > 0;
 
   await cart.save();
   return cart;
 };
 
+const deleteCartItem = async (user_id) => {
+  const cart = await CartRepository.getCartByUserId({ user_id });
+
+  console.log(cart, ">>>>>>>>>>>>>>>>>>>")
+  if (!cart) {
+    throw new ApiResponse(404, null, "Cart not found", false);
+  }
+  return await CartRepository.removeCartItem(user_id);
+};
+
 module.exports = {
   getCart,
   updateCart,
+  deleteCartItem
 };

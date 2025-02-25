@@ -1,12 +1,13 @@
+const mongoose = require("mongoose");
 const Cart = require("../../models/cartModel");
 
 const getCart = async () => {
   return await Cart.find();
 };
 
-const getCartByUserId = async ({user_id}) => {
-    return await Cart.findOne({ user: user_id });
-  };
+const getCartByUserId = async ({ user_id }) => {
+  return await Cart.findOne({ user: user_id });
+};
 
 const addToCart = async (data) => {
   return await Cart.create(data);
@@ -17,7 +18,7 @@ const updateCartItem = async (id, data) => {
 };
 
 const removeCartItem = async (id) => {
-  return await Cart.findByIdAndDelete(id);
+  return await Cart.findOneAndDelete({ user: id });
 };
 
 module.exports = {

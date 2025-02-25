@@ -10,7 +10,10 @@ const getAllProducts = async ({
   const skip = (page - 1) * per_page;
 
   const filter = {};
-  if (category_id) {
+
+  if (Array.isArray(category_id) && category_id.length > 0) {
+    filter.category = { $in: category_id };
+  } else if (category_id) {
     filter.category = category_id;
   }
 

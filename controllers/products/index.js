@@ -25,7 +25,7 @@ const getAllProducts = asyncHandler(async (req, res) => {
     is_best_seller,
     search,
     price_range,
-    sort_by
+    sort_by,
   });
   res.json(
     new ApiResponse(200, products, "Products fetched successfully", true)
@@ -65,10 +65,23 @@ const createProduct = asyncHandler(async (req, res) => {
   );
   console.log(">>", imageUrls, bannerImageUrl);
 
+  let { meta_data } = req.body;
+
+  if (meta_data) {
+    try {
+      meta_data = JSON.parse(meta_data);
+    } catch (error) {
+      return res.json(
+        new ApiResponse(400, null, "Invalid meta_data format", false)
+      );
+    }
+  }
+
   const productData = {
     ...req.body,
     images: imageUrls,
     banner_image: bannerImageUrl,
+    meta_data,
   };
 
   const product = await ProductsServices.createProduct(productData);

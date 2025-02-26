@@ -8,14 +8,24 @@ const {
 } = require("../../utils/upload/index.js");
 
 const getAllProducts = asyncHandler(async (req, res) => {
-  const { page = 1, per_page = 10, category_id, is_best_seller, search } = req.query;
+  const {
+    page = 1,
+    per_page = 10,
+    price_range,
+    category_id,
+    is_best_seller,
+    search,
+    sort_by = "created_at",
+  } = req.query;
 
   const products = await ProductsServices.getAllProducts({
     page: parseInt(page, 10),
     per_page: parseInt(per_page, 10),
     category_id,
     is_best_seller,
-    search
+    search,
+    price_range,
+    sort_by
   });
   res.json(
     new ApiResponse(200, products, "Products fetched successfully", true)
@@ -53,7 +63,7 @@ const createProduct = asyncHandler(async (req, res) => {
     bannerImageFile.path,
     "uploads/images"
   );
-  console.log(">>",imageUrls, bannerImageUrl)
+  console.log(">>", imageUrls, bannerImageUrl);
 
   const productData = {
     ...req.body,

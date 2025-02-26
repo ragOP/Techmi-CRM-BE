@@ -19,7 +19,7 @@ const updateCart = async (user_id, product_id, quantity) => {
     throw new ApiResponse(404, null, "Product not found", false);
   }
 
-  const finalPrice = parseFloat(
+  const productPrice = parseFloat(
     productData.discounted_price || productData.price
   );
 
@@ -27,57 +27,50 @@ const updateCart = async (user_id, product_id, quantity) => {
     if (quantity > 0) {
       cart = await CartRepository.addToCart({
         user: user_id,
-        total_price: finalPrice * quantity,
         items: [
           {
             product: product_id,
             quantity,
-            price: finalPrice,
-            total: finalPrice * quantity,
-            discount: productData.discount || 0,
-            name: productData.name,
-            images: productData.images,
-            description: productData.description,
+            price: productPrice,
+            total: productPrice * quantity,
           },
         ],
+        total_price: productPrice * quantity,
         is_active: true,
       });
     }
-    return cart;
+    cart = await Cart.findOne({ user: user_id }).populate("items.product");
+    return new ApiResponse(201, cart, "Cart created successfully", true);
   }
 
-  const existingItem = cart.items.find(
-    (item) => item.product.toString() === product_id
+  const existingItemIndex = cart.items.findIndex(
+    (item) => item.product._id.toString() === product_id
   );
 
-  if (existingItem) {
+  if (existingItemIndex !== -1) {
     if (quantity > 0) {
-      existingItem.quantity = quantity;
-      existingItem.total = finalPrice * quantity;
+      cart.items[existingItemIndex].quantity = quantity;
+      cart.items[existingItemIndex].total = productPrice * quantity;
     } else {
-      cart.items = cart.items.filter(
-        (item) => item.product.toString() !== product_id
-      );
+      cart.items.splice(existingItemIndex, 1);
     }
   } else if (quantity > 0) {
     cart.items.push({
       product: product_id,
       quantity,
-      price: finalPrice,
-      total: finalPrice * quantity,
-      discount: productData.discount || 0,
-      name: productData.name,
-      images: productData.images,
-      description: productData.description,
+      price: productPrice,
+      total: productPrice * quantity,
     });
   }
 
   cart.total_price = cart.items.reduce((sum, item) => sum + item.total, 0);
-
   cart.is_active = cart.items.length > 0;
 
   await cart.save();
-  return cart;
+
+  cart = await Cart.findOne({ user: user_id }).populate("items.product");
+
+  return new ApiResponse(200, cart, "Cart updated successfully", true);
 };
 
 const deleteCart = async (user_id) => {

@@ -7,10 +7,10 @@ const getCart = async () => {
 
 const getCartByUserId = async ({ user_id }) => {
   if (user_id) {
-    return await Cart.findOne({ user: user_id });
+    return await Cart.findOne({ user: user_id }).populate("items.product");
   }
 
-  return await Cart.find();
+  return await Cart.find().populate("items.product");
 };
 
 const addToCart = async (data) => {

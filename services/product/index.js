@@ -5,14 +5,18 @@ const getAllProducts = async ({
   per_page,
   category_id,
   is_best_seller,
-  search
+  search,
+  price_range,
+  sort_by,
 }) => {
   return await ProductsRepository.getAllProducts({
     page,
     per_page,
     category_id,
     is_best_seller,
-    search
+    search,
+    price_range,
+    sort_by,
   });
 };
 

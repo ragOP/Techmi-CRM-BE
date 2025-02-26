@@ -23,25 +23,17 @@ const CartSchema = new mongoose.Schema(
           type: Number,
           required: true,
         },
-        discount: {
-          type: Number,
-          default: 0,
-        },
         total: {
           type: Number,
           required: true,
         },
-        name: {
-          type: String,
-          required: true,
+        addedAt: {
+          type: Date,
+          default: Date.now,
         },
-        images: [
-          {
-            type: String,
-          },
-        ],
-        description: {
-          type: String,
+        updatedAt: {
+          type: Date,
+          default: Date.now,
         },
       },
     ],
@@ -57,6 +49,18 @@ const CartSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// ✅ Auto-calculate total for each item before saving
+CartSchema.pre("save", function (next) {
+  this.items.forEach((item) => {
+    item.total = item.quantity * item.price;
+  });
+
+  // ✅ Calculate total_price for the cart
+  this.total_price = this.items.reduce((sum, item) => sum + item.total, 0);
+
+  next();
+});
 
 const Cart = mongoose.model("Cart", CartSchema);
 module.exports = Cart;

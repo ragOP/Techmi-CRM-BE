@@ -3,6 +3,7 @@ const ProductsRepository = require("../../repositories/product/index.js");
 const getAllProducts = async ({
   page,
   per_page,
+  service_id,
   category_id,
   is_best_seller,
   search,
@@ -13,6 +14,7 @@ const getAllProducts = async ({
     page,
     per_page,
     category_id,
+    service_id,
     is_best_seller,
     search,
     price_range,

@@ -1,8 +1,11 @@
+const Category = require("../../models/categoryModel");
 const Product = require("../../models/productsModel");
+const mongoose = require("mongoose");
 
 const getAllProducts = async ({
   page,
   per_page,
+  service_id,
   category_id,
   is_best_seller,
   search,
@@ -13,11 +16,48 @@ const getAllProducts = async ({
 
   const filter = {};
 
-  if (Array.isArray(category_id) && category_id.length > 0) {
-    filter.category = { $in: category_id };
-  } else if (category_id) {
-    filter.category = category_id;
+  let serviceCategoryIds = [];
+
+  if (service_id) {
+    const services = Array.isArray(service_id)
+      ? service_id
+      : service_id.split(",");
+    const serviceObjectIds = services
+      .map((s) =>
+        mongoose.isValidObjectId(s)
+          ? mongoose.Types.ObjectId.createFromHexString(s)
+          : null
+      )
+      .filter(Boolean);
+
+    if (serviceObjectIds.length > 0) {
+      const serviceCategories = await Category.find({
+        service: { $in: serviceObjectIds },
+      });
+      serviceCategoryIds = serviceCategories.map((category) =>
+        category._id.toString()
+      );
+    }
   }
+
+  let finalCategoryIds = [
+    ...new Set([
+      ...(Array.isArray(category_id)
+        ? category_id
+        : [category_id].filter(Boolean)),
+      ...serviceCategoryIds,
+    ]),
+  ];
+
+  if (finalCategoryIds.length > 0) {
+    filter.category = { $in: finalCategoryIds };
+  }
+
+  // if (Array.isArray(category_id) && category_id.length > 0) {
+  //   filter.category = { $in: category_id };
+  // } else if (category_id) {
+  //   filter.category = category_id;
+  // }
 
   if (is_best_seller) {
     filter.is_best_seller = is_best_seller;

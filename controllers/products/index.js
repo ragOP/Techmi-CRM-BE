@@ -12,6 +12,7 @@ const getAllProducts = asyncHandler(async (req, res) => {
     page = 1,
     per_page = 10,
     price_range,
+    service_id,
     category_id,
     is_best_seller,
     search,
@@ -21,6 +22,7 @@ const getAllProducts = asyncHandler(async (req, res) => {
   const products = await ProductsServices.getAllProducts({
     page: parseInt(page, 10),
     per_page: parseInt(per_page, 10),
+    service_id,
     category_id,
     is_best_seller,
     search,

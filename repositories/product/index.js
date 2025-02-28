@@ -49,6 +49,8 @@ const getAllProducts = async ({
     ]),
   ];
 
+  console.log("finalCategoryIds", finalCategoryIds);
+
   if (finalCategoryIds.length > 0) {
     filter.category = { $in: finalCategoryIds };
   }
@@ -68,12 +70,30 @@ const getAllProducts = async ({
   }
 
   if (price_range) {
-    const prices = price_range.split("_").map(Number);
+    const priceRanges = Array.isArray(price_range)
+      ? price_range
+      : [price_range];
 
-    if (prices.length === 2 && !isNaN(prices[0]) && !isNaN(prices[1])) {
-      filter.price = { $gte: prices[0], $lte: prices[1] };
-    } else if (prices.length === 1 && !isNaN(prices[0])) {
-      filter.price = { $gte: prices[0] };
+    let minPrice = Infinity;
+    let maxPrice = -Infinity;
+
+    priceRanges.forEach((range) => {
+      if (typeof range === "string") {
+        const prices = range.split("_").map(Number);
+
+        if (prices.length === 2 && !isNaN(prices[0]) && !isNaN(prices[1])) {
+          minPrice = Math.min(minPrice, prices[0]);
+          maxPrice = Math.max(maxPrice, prices[1]);
+        } else if (prices.length === 1 && !isNaN(prices[0])) {
+          minPrice = Math.min(minPrice, prices[0]);
+        }
+      }
+    });
+
+    if (minPrice !== Infinity && maxPrice !== -Infinity) {
+      filter.price = { $gte: minPrice, $lte: maxPrice };
+    } else if (minPrice !== Infinity) {
+      filter.price = { $gte: minPrice };
     }
   }
 

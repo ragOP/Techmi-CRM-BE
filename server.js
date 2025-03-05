@@ -11,6 +11,7 @@ const serviceRoutes = require("./routes/service/index.js");
 const categoryRoutes = require("./routes/category/index.js");
 const productRoutes = require("./routes/product/index.js");
 const cartRoutes = require("./routes/cart/index.js");
+const addressRoutes = require("./routes/address/index.js");
 
 connectDB();
 
@@ -27,6 +28,7 @@ app.use("/api/service", serviceRoutes);
 app.use("/api/category", categoryRoutes);
 app.use("/api/product", productRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/address", addressRoutes);
 
 app.use("/api-doc", swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 

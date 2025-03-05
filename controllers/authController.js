@@ -33,7 +33,6 @@ const registerUser = asyncHandler(async (req, res) => {
   const user = await User.create({ name, email, password, is_super_admin });
 
   const accessToken = generateAccessToken(user._id);
-  const refreshToken = generateRefreshToken(user._id);
   sendRefreshToken(res, refreshToken);
 
   const data = {
@@ -58,9 +57,9 @@ const loginUser = asyncHandler(async (req, res) => {
   }
 
   const accessToken = generateAccessToken(user._id);
-  const refreshToken = generateRefreshToken(user._id);
+  // const refreshToken = generateRefreshToken(user._id);
 
-  sendRefreshToken(res, refreshToken);
+  // sendRefreshToken(res, refreshToken);
   const data = {
     id: user.id,
     name: user.name,

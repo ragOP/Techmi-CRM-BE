@@ -7,19 +7,30 @@ const AddressSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    label: {
+    name: {
       type: String,
-      maxlength: 50,
-      default: "Home",
+      required: true,
+      maxlength: 100,
     },
-    address_line1: {
+    mobile: {
+      type: String,
+      required: true,
+      maxlength: 20,
+    },
+    pincode: {
+      type: String,
+      required: true,
+      maxlength: 20,
+    },
+    locality: {
       type: String,
       required: true,
       maxlength: 255,
     },
-    address_line2: {
+    address: {
       type: String,
-      maxlength: 255,
+      required: true,
+      maxlength: 500,
     },
     city: {
       type: String,
@@ -31,35 +42,21 @@ const AddressSchema = new mongoose.Schema(
       required: true,
       maxlength: 100,
     },
-    postal_code: {
+    landmark: {
       type: String,
-      required: true,
+      maxlength: 255,
+    },
+    alternatePhone: {
+      type: String,
       maxlength: 20,
     },
-    country: {
+    addressType: {
       type: String,
-      required: true,
-      maxlength: 100,
-    },
-    dial_code: {
-      type: String,
-      required: true,
-      maxlength: 5,
-    },
-    phone: {
-      type: String,
-      required: true,
-      maxlength: 20,
-    },
-    is_primary: {
-      type: Boolean,
-      default: false,
-    },
-    address_type: {
-      type: String,
-      enum: ["shipping", "billing", "both"],
+      enum: ["home", "work", "other"],
       required: true,
     },
   },
   { timestamps: true }
 );
+
+module.exports = mongoose.model("Address", AddressSchema);

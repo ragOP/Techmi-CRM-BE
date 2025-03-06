@@ -12,6 +12,7 @@ const categoryRoutes = require("./routes/category/index.js");
 const productRoutes = require("./routes/product/index.js");
 const cartRoutes = require("./routes/cart/index.js");
 const addressRoutes = require("./routes/address/index.js");
+const orderRoutes = require("./routes/order/index.js");
 
 connectDB();
 
@@ -29,6 +30,7 @@ app.use("/api/category", categoryRoutes);
 app.use("/api/product", productRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/address", addressRoutes);
+app.use("/api/order", orderRoutes);
 
 app.use("/api-doc", swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 

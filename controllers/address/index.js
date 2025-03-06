@@ -27,15 +27,14 @@ const getAddressById = asyncHandler(async (req, res) => {
 
 const getAddressByUserId = asyncHandler(async (req, res) => {
   // Extract user ID from the token (assuming it's stored in req.user)
-  const userId = req.user._id;
-
+  const { id } = req.params;
   // Validate user ID
-  if (!mongoose.Types.ObjectId.isValid(userId)) {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.json(new ApiResponse(400, null, "Invalid user ID", false));
   }
-
+  console.log(id, "RES <<<<<");
   // Fetch addresses for the user
-  const addresses = await AddressServices.getAddressesByUserId(userId);
+  const addresses = await AddressServices.getAddressesByUserId(id);
 
   // Check if addresses exist
   if (!addresses || addresses.length === 0) {
@@ -55,12 +54,14 @@ const createAddress = asyncHandler(async (req, res) => {
 
   if (
     !addressData.user ||
-    !addressData.address_line1 ||
+    !addressData.name ||
+    !addressData.mobile ||
+    !addressData.pincode ||
+    !addressData.locality ||
+    !addressData.address ||
     !addressData.city ||
     !addressData.state ||
-    !addressData.postal_code ||
-    !addressData.country ||
-    !addressData.phone
+    !addressData.addressType
   ) {
     return res.json(
       new ApiResponse(400, null, "Missing required fields", false)
@@ -108,5 +109,5 @@ module.exports = {
   createAddress,
   updateAddress,
   deleteAddress,
-  getAddressByUserId
+  getAddressByUserId,
 };

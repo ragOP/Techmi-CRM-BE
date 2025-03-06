@@ -5,7 +5,7 @@ const router = express.Router();
 const AddressController = require("../../controllers/address/index.js");
 
 router.get("/", admin, AddressController.getAllAddresses);
-router.get("/id", admin, AddressController.getAddressByUserId);
+router.get("/user/:id", admin, AddressController.getAddressByUserId);
 router.get("/:id", admin, AddressController.getAddressById);
 router.post("/", admin, AddressController.createAddress);
 router.put("/:id", admin, AddressController.updateAddress);

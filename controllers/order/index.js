@@ -5,58 +5,57 @@ const Cart = require("../../models/cartModel");
 const Address = require("../../models/addressModel");
 const Product = require("../../models/productsModel");
 const Order = require("../../models/orderModel");
+const Coupon = require("../../models/couponModel");
 
 const createOrder = asyncHandler(async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { cartId, addressId } = req.body;
+    const { cartId, addressId, couponId } = req.body;
     const userId = req.user._id;
+    console.log(userId, ">>>>>>>>>>>.userId");
 
-    // Validate cart ID
-    if (!mongoose.Types.ObjectId.isValid(cartId)) {
-      return res
-        .status(400)
-        .json(new ApiResponse(400, null, "Invalid cart ID", false));
+    // Validate input IDs
+    const validateId = (id, name) => {
+      if (id && !mongoose.Types.ObjectId.isValid(id)) {
+        throw new Error(`Invalid ${name} ID`);
+      }
+    };
+
+    validateId(cartId, "cart");
+    validateId(addressId, "address");
+    validateId(couponId, "coupon");
+    validateId(userId, "userId");
+
+    // Fetch and validate coupon
+    let coupon = null;
+    if (couponId) {
+      coupon = await Coupon.findById(couponId).session(session);
+      if (!coupon) throw new Error("Coupon not found");
+
+      const now = new Date();
+      if (!coupon.active) throw new Error("Coupon is inactive");
+      if (now < coupon.startDate) throw new Error("Coupon not yet valid");
+      if (now > coupon.endDate) throw new Error("Coupon expired");
+      if (coupon.totalUseLimit !== null && coupon.totalUseLimit <= 0) {
+        throw new Error("Coupon usage limit reached");
+      }
     }
 
-    // Validate address ID
-    if (!mongoose.Types.ObjectId.isValid(addressId)) {
-      return res
-        .status(400)
-        .json(new ApiResponse(400, null, "Invalid address ID", false));
-    }
-
-    // Get and validate cart
-    const cart = await Cart.findOne({
-      _id: cartId,
-      user: userId,
-    }).session(session);
-
-    if (!cart) {
-      return res
-        .status(404)
-        .json(new ApiResponse(404, null, "Cart not found", false));
-    }
-
-    if (cart.items.length === 0) {
-      return res
-        .status(400)
-        .json(new ApiResponse(400, null, "Cart is empty", false));
-    }
+    // Validate cart
+    const cart = await Cart.findOne({ _id: cartId, user: userId }).session(
+      session
+    );
+    if (!cart) throw new Error("Cart not found");
+    if (cart.items.length === 0) throw new Error("Cart is empty");
 
     // Validate address
     const address = await Address.findOne({
       _id: addressId,
       user: userId,
     }).session(session);
-
-    if (!address) {
-      return res
-        .status(400)
-        .json(new ApiResponse(400, null, "Address not found", false));
-    }
+    if (!address) throw new Error("Address not found");
 
     // Process cart items
     let totalAmount = 0;
@@ -64,34 +63,61 @@ const createOrder = asyncHandler(async (req, res) => {
 
     for (const cartItem of cart.items) {
       const product = await Product.findById(cartItem.product).session(session);
+      if (!product) throw new Error(`Product ${cartItem.product} not found`);
+      if (!product.instock) throw new Error(`${product.name} is out of stock`);
 
-      if (!product) {
-        throw new Error(`Product not found: ${cartItem.product}`);
-      }
-
-      if (!product.instock) {
-        throw new Error(`Product out of stock: ${product.name}`);
-      }
-
-      // Get current price
       const currentPrice = product.discounted_price || product.price;
       const itemTotal = parseFloat(currentPrice.toString()) * cartItem.quantity;
       totalAmount += itemTotal;
 
-      // Create product snapshot
-      const productSnapshot = {
-        _id: product._id,
-        name: product.name,
-        price: product.price,
-        discounted_price: product.discounted_price,
-        banner_image: product.banner_image,
-      };
-
       orderItems.push({
-        product: productSnapshot,
+        product: {
+          _id: product._id,
+          name: product.name,
+          price: product.price,
+          discounted_price: product.discounted_price,
+          banner_image: product.banner_image,
+        },
         quantity: cartItem.quantity,
         priceAtOrder: currentPrice,
       });
+    }
+
+    // Apply coupon discount
+    let discountAmount = 0;
+    let couponDetails = null;
+
+    if (coupon) {
+      if (coupon.userUseLimit && userUsage >= coupon.userUseLimit) {
+        throw new Error("Coupon usage limit exceeded for user");
+      }
+
+      // Calculate discount
+      if (coupon.discountType === "percentage") {
+        discountAmount = totalAmount * (coupon.discountValue / 100);
+        if (coupon.maxDiscount) {
+          discountAmount = Math.min(discountAmount, coupon.maxDiscount);
+        }
+      } else {
+        discountAmount = Math.min(coupon.discountValue, totalAmount);
+      }
+
+      // Update coupon usage
+      if (coupon.totalUseLimit !== null) {
+        await Coupon.findByIdAndUpdate(
+          coupon._id,
+          { $inc: { totalUseLimit: -1 } },
+          { session }
+        );
+      }
+
+      // Create coupon usage record
+      couponDetails = {
+        code: coupon.code,
+        discountType: coupon.discountType,
+        discountValue: coupon.discountValue,
+        discountAmount,
+      };
     }
 
     // Create address snapshot
@@ -107,13 +133,31 @@ const createOrder = asyncHandler(async (req, res) => {
       user: userId,
       items: orderItems,
       address: addressSnapshot,
-      totalAmount: totalAmount,
+      totalAmount: totalAmount - discountAmount,
+      coupon: couponDetails,
+      originalAmount: totalAmount,
+      discountAmount,
     });
 
     // Save order and clear cart
     await order.save({ session });
     cart.items = [];
     await cart.save({ session });
+
+    // // Save coupon usage if applied
+    // if (coupon) {
+    //   await CouponUsage.create(
+    //     [
+    //       {
+    //         user: userId,
+    //         coupon: coupon._id,
+    //         order: order._id,
+    //         discountAmount,
+    //       },
+    //     ],
+    //     { session }
+    //   );
+    // }
 
     await session.commitTransaction();
 

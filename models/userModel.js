@@ -6,7 +6,28 @@ const UserSchema = new mongoose.Schema(
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    is_super_admin: { type: Boolean, default: false },
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
+    is_super_admin: {
+      type: Boolean,
+      default: false,
+      validate: {
+        validator: function (value) {
+          // is_super_admin can only be true if role is "admin"
+          return this.role === "admin" || value === false;
+        },
+        message: "is_super_admin can only be true for admin users",
+      },
+    },
+    services: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Services",
+      },
+    ],
   },
   { timestamps: true }
 );

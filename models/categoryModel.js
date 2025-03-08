@@ -34,7 +34,7 @@ const CategorySchema = new mongoose.Schema(
     },
     created_by_admin: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Admin",
+      ref: "User",
       required: true,
     },
     created_by_super_admin: {

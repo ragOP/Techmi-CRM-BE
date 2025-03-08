@@ -5,6 +5,7 @@ const { admin } = require("../../middleware/authMiddleware");
 
 router.post("/", admin, couponController.createCoupon);
 router.get("/:code/validate", admin, couponController.validateCoupon);
+router.get("/:code", admin, couponController.getCouponByCode);
 router.post("/:code/apply", admin, couponController.applyCoupon);
 router.get("/", admin, couponController.getAllCoupons);
 router.delete("/:code", admin, couponController.deleteCoupon);

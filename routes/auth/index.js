@@ -77,18 +77,29 @@
 const express = require("express");
 const {
   registerUser,
-  loginUser,
+  userLogin,
   refreshToken,
   logoutUser,
   getAllUsers,
+  adminLogin,
+  superAdminLogin,
+  getAllAdmins,
+  updateUser,
+  deleteUser,
 } = require("../../controllers/authController");
+const { superAdmin } = require("../../middleware/authMiddleware");
 
 const router = express.Router();
 
 router.get("/", getAllUsers);
+router.get("/admins", superAdmin, getAllAdmins);
 router.post("/register", registerUser);
-router.post("/login", loginUser);
+router.post("/login", userLogin);
+router.post("/admin-login", adminLogin);
+router.post("/super-admin-login", superAdminLogin);
 router.post("/refresh", refreshToken);
 router.post("/logout", logoutUser);
+router.put("/:id", updateUser);
+router.delete("/:id", deleteUser);
 
 module.exports = router;

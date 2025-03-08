@@ -1,81 +1,70 @@
+const { asyncHandler } = require("../../common/asyncHandler");
 const Coupon = require("../../models/couponModel");
 
-const getAllCoupons = async (req, res) => {
-  try {
-    const coupons = await Coupon.find();
-    res.json(coupons);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+const getAllCoupons = asyncHandler(async (req, res) => {
+  const coupons = await Coupon.find();
+  res.json(coupons);
+});
 
 // Delete coupon
-const deleteCoupon = async (req, res) => {
-  try {
-    const coupon = await Coupon.findOneAndDelete({ code: req.params.code });
-    if (!coupon) return res.status(404).json({ error: "Coupon not found" });
-    res.json({ message: "Coupon deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+const deleteCoupon = asyncHandler(async (req, res) => {
+  const coupon = await Coupon.findOneAndDelete({ code: req.params.code });
+  if (!coupon) return res.status(404).json({ error: "Coupon not found" });
+  res.json({ message: "Coupon deleted successfully" });
+  res.status(500).json({ error: error.message });
+});
 
 // Create new coupon
-const createCoupon = async (req, res) => {
-  try {
-    const coupon = new Coupon(req.body);
-    await coupon.save();
-    res.status(201).json(coupon);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
+const createCoupon = asyncHandler(async (req, res) => {
+  const coupon = new Coupon(req.body);
+  await coupon.save();
+  res.status(201).json(coupon);
+});
 
 // Validate coupon
-const validateCoupon = async (req, res) => {
-  try {
-    const coupon = await Coupon.findOne({ code: req.params.code });
-    if (!coupon) return res.status(404).json({ error: "Coupon not found" });
+const validateCoupon = asyncHandler(async (req, res) => {
+  const coupon = await Coupon.findOne({ code: req.params.code });
+  if (!coupon) return res.status(404).json({ error: "Coupon not found" });
 
-    const validation = await validateCouponRules(coupon);
-    if (!validation.valid) return res.status(400).json(validation);
+  const validation = await validateCouponRules(coupon);
+  if (!validation.valid) return res.status(400).json(validation);
 
-    res.json(validation);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
+  res.json(validation);
+});
 
 // Apply coupon to order
-const applyCoupon = async (req, res) => {
-  try {
-    const coupon = await Coupon.findOne({ code: req.params.code });
-    if (!coupon) return res.status(404).json({ error: "Coupon not found" });
+const applyCoupon = asyncHandler(async (req, res) => {
+  const coupon = await Coupon.findOne({ code: req.params.code });
+  if (!coupon) return res.status(404).json({ error: "Coupon not found" });
 
-    const validation = await validateCouponRules(coupon);
-    if (!validation.valid) return res.status(400).json(validation);
+  const validation = await validateCouponRules(coupon);
+  if (!validation.valid) return res.status(400).json(validation);
 
-    const { items } = req.body;
-    const applicableItems = items.filter((item) =>
-      isItemApplicable(item, coupon)
-    );
+  const { items } = req.body;
+  const applicableItems = items.filter((item) =>
+    isItemApplicable(item, coupon)
+  );
 
-    const subtotal = applicableItems.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
-    );
-    const discount = calculateDiscount(subtotal, coupon);
+  const subtotal = applicableItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+  const discount = calculateDiscount(subtotal, coupon);
 
-    res.json({
-      valid: true,
-      discountApplied: discount,
-      finalAmount: subtotal - discount,
-      couponDetails: coupon,
-    });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
+  res.json({
+    valid: true,
+    discountApplied: discount,
+    finalAmount: subtotal - discount,
+    couponDetails: coupon,
+  });
+});
+
+// Get coupon by code
+const getCouponByCode = asyncHandler(async (req, res) => {
+  const coupon = await Coupon.findOne({ code: req.params.code });
+  if (!coupon) return res.status(404).json({ error: "Coupon not found" });
+  res.json(coupon);
+});
 
 // Helper functions
 async function validateCouponRules(coupon) {
@@ -143,4 +132,5 @@ module.exports = {
   applyCoupon,
   getAllCoupons,
   deleteCoupon,
+  getCouponByCode,
 };

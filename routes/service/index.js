@@ -13,7 +13,7 @@ router.post(
   upload.array("images"),
   ServiceController.createService
 );
-router.get("/", superAdmin, ServiceController.getAllServices);
+router.get("/", ServiceController.getAllServices);
 router.get("/:id", superAdmin, ServiceController.getServiceById);
 router.put("/:id", superAdmin, ServiceController.updateService);
 router.delete("/:id", superAdmin, ServiceController.deleteService);

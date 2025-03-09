@@ -15,7 +15,12 @@ router.post(
 );
 router.get("/", CategoryController.getAllCategory);
 router.get("/:id", admin, CategoryController.getCategoryById);
-router.patch("/:id", admin, CategoryController.updateCategory);
+router.put(
+  "/:id",
+  admin,
+  upload.array("images"),
+  CategoryController.updateCategory
+);
 router.delete("/:id", admin, CategoryController.deleteCategory);
 
 module.exports = router;

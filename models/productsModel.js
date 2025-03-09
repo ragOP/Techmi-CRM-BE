@@ -61,6 +61,11 @@ const ProductSchema = new mongoose.Schema(
       ref: "Category",
       required: true,
     },
+    created_by_admin: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
   },
   { timestamps: true }
 );

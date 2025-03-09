@@ -55,16 +55,40 @@ const createCategory = asyncHandler(async (req, res) => {
 });
 
 const updateCategory = asyncHandler(async (req, res) => {
-  const category = await CategoryService.updateCategory(
-    req.params.id,
-    req.body
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.json(new ApiResponse(400, null, "Invalid category ID", false));
+  }
+
+  let categoryData = { ...req.body };
+
+  if (req.files) {
+    const imageUrls = await uploadMultipleFiles(req.files, "uploads/images");
+    categoryData.images = imageUrls;
+  }
+
+  if (categoryData?.meta_data) {
+    try {
+      categoryData.meta_data = JSON.parse(categoryData.meta_data);
+    } catch (error) {
+      return res.json(
+        new ApiResponse(400, null, "Invalid meta_data format", false)
+      );
+    }
+  }
+
+  const updatedCategory = await CategoryService.updateCategory(
+    id,
+    categoryData
   );
-  if (!category) {
+
+  if (!updatedCategory) {
     return res.json(new ApiResponse(404, null, "Category not found", false));
   }
 
   res.json(
-    new ApiResponse(200, category, "Category updated successfully", true)
+    new ApiResponse(200, updatedCategory, "Category updated successfully", true)
   );
 });
 

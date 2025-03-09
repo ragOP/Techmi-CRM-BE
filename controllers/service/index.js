@@ -42,19 +42,44 @@ const createService = asyncHandler(async (req, res) => {
 
   console.log("> 11111", serviceData);
 
-
   const service = await ServiceServices.createService(serviceData);
   console.log("> service", service);
   res.json(new ApiResponse(200, service, "Service created successfully", true));
 });
 
 const updateService = asyncHandler(async (req, res) => {
-  const service = await ServiceServices.updateService(req.params.id, req.body);
-  if (!service) {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.json(new ApiResponse(400, null, "Invalid service ID", false));
+  }
+
+  let serviceData = { ...req.body };
+
+  if (req.files) {
+    const imageUrls = await uploadMultipleFiles(req.files, "uploads/images");
+    serviceData.images = imageUrls;
+  }
+
+  if (serviceData?.meta_data) {
+    try {
+      serviceData.meta_data = JSON.parse(serviceData.meta_data);
+    } catch (error) {
+      return res.json(
+        new ApiResponse(400, null, "Invalid meta_data format", false)
+      );
+    }
+  }
+
+  const updatedService = await ServiceServices.updateService(id, serviceData);
+
+  if (!updatedService) {
     return res.json(new ApiResponse(404, null, "Service not found", false));
   }
 
-  res.json(new ApiResponse(200, service, "Service updated successfully", true));
+  res.json(
+    new ApiResponse(200, updatedService, "Service updated successfully", true)
+  );
 });
 
 const deleteService = asyncHandler(async (req, res) => {

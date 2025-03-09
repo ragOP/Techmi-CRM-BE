@@ -7,6 +7,14 @@ const Product = require("../../models/productsModel");
 const Order = require("../../models/orderModel");
 const Coupon = require("../../models/couponModel");
 
+const getAllOrders = asyncHandler(async (req, res) => {
+  const orders = await Order.find().sort({ createdAt: -1 });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, orders, "Orders fetched successfully", true));
+});
+
 const createOrder = asyncHandler(async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -190,4 +198,4 @@ const getOrderHistory = asyncHandler(async (req, res) => {
   }
 });
 
-module.exports = { createOrder, getOrderHistory };
+module.exports = { createOrder, getOrderHistory, getAllOrders };

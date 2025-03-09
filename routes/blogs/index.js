@@ -9,5 +9,6 @@ const upload = multer({ storage: storage });
 
 router.post("/", admin, upload.single("banner"), BlogController.postBlogs);
 router.get("/", BlogController.getBlogs);
+router.get("/:id", BlogController.getSingleBlog)
 
 module.exports = router;

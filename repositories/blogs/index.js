@@ -5,14 +5,17 @@ const createNewBlog = async (data) => {
 };
 
 const getAllBlogs = async (featured) => {
-  if (featured) {
-    return await Blog.find({ isFeatured: true });
-  } else {
-    return await Blog.find({});
-  }
+  const filter = featured ? { isFeatured: true } : {};
+  return await Blog.find(filter);
 };
+
+
+const getSingleBlogById = async (id) => {
+  return await Blog.findById(id)
+}
 
 module.exports = {
   createNewBlog,
   getAllBlogs,
+  getSingleBlogById
 };

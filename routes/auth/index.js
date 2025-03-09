@@ -86,13 +86,15 @@ const {
   getAllAdmins,
   updateUser,
   deleteUser,
+  getAll,
 } = require("../../controllers/authController");
 const { superAdmin } = require("../../middleware/authMiddleware");
 
 const router = express.Router();
 
-router.get("/", getAllUsers);
+router.get("/", getAll);
 router.get("/admins", superAdmin, getAllAdmins);
+router.get("/users", superAdmin, getAllUsers);
 router.post("/register", registerUser);
 router.post("/login", userLogin);
 router.post("/admin-login", adminLogin);

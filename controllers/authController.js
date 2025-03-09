@@ -17,7 +17,7 @@ const sendRefreshToken = (res, token) => {
 };
 
 // Get All Users
-const getAllUsers = asyncHandler(async (req, res) => {
+const getAll = asyncHandler(async (req, res) => {
   const users = await User.find();
   res.json(new ApiResponse(200, users, "Users fetched successfully", true));
 });
@@ -32,6 +32,12 @@ const getAllAdmins = asyncHandler(async (req, res) => {
     .populate("services");
 
   res.json(new ApiResponse(200, admins, "Admins fetched successfully", true));
+});
+
+const getAllUsers = asyncHandler(async (req, res) => {
+  const users = await User.find({ role: "user" }).select("-password");
+
+  res.json(new ApiResponse(200, users, "Users fetched successfully", true));
 });
 
 // Register User
@@ -179,7 +185,7 @@ const updateUser = asyncHandler(async (req, res) => {
   if (typeof is_super_admin !== "undefined")
     user.is_super_admin = is_super_admin;
 
-  console.log(user, ">>>>>>>>> USER")
+  console.log(user, ">>>>>>>>> USER");
   await user.save();
 
   const updatedUser = await User.findById(id).populate("services");
@@ -240,4 +246,5 @@ module.exports = {
   logoutUser,
   updateUser,
   deleteUser,
+  getAll,
 };

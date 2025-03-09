@@ -4,6 +4,7 @@ const OrderController = require("../../controllers/order/index.js");
 const { user } = require("../../middleware/authMiddleware.js");
 
 router.post("/", user, OrderController.createOrder);
+router.get("/", OrderController.getAllOrders);
 router.get("/history", user, OrderController.getOrderHistory);
 
 module.exports = router;

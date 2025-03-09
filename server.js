@@ -16,6 +16,7 @@ const orderRoutes = require("./routes/order/index.js");
 const couponRoutes = require("./routes/coupon/index.js");
 const contactRoute = require("./routes/contact/index.js");
 const blogRoute = require("./routes/blogs/index.js");
+const reviewRoute = require("./routes/reviews/index.js");
 
 connectDB();
 
@@ -37,6 +38,7 @@ app.use("/api/order", orderRoutes);
 app.use("/api/coupon", couponRoutes);
 app.use("/api/contact", contactRoute);
 app.use("/api/blog", blogRoute);
+app.use("/api/review", reviewRoute)
 
 app.use("/api-doc", swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 

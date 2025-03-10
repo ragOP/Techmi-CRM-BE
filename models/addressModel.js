@@ -55,6 +55,10 @@ const AddressSchema = new mongoose.Schema(
       enum: ["home", "work", "other"],
       required: true,
     },
+    isPrimary: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

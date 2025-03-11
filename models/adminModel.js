@@ -17,6 +17,20 @@ const AdminSchema = new mongoose.Schema(
         ref: "Services",
       },
     ],
+    created_by: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Admin",
+      required: function () {
+        return this.role === "sub_admin";
+      },
+      validate: {
+        validator: function (value) {
+          // Allow created_by only if role is sub_admin
+          return this.role === "sub_admin" || value == null;
+        },
+        message: "created_by is only allowed for sub_admin role",
+      },
+    },
   },
   { timestamps: true }
 );

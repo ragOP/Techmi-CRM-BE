@@ -6,13 +6,18 @@ const {
   deleteAdmin,
   // logoutAdmin,
   loginAdmin,
+  getAllSubAdmins,
+  registerSubAdmin,
 } = require("../../../controllers/auth/admin/index");
+const { admin } = require("../../../middleware/auth/adminMiddleware");
 
 const router = express.Router();
 
 router.get("/", getAllAdmins);
 router.post("/register", registerAdmin);
 router.post("/login", loginAdmin);
+router.get("/sub-admin", admin, getAllSubAdmins);
+router.post("/sub-admin", admin, registerSubAdmin);
 // router.post("/logout", logoutAdmin);
 
 // DEVELOPMENT API's

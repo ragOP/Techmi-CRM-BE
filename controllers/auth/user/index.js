@@ -78,7 +78,7 @@ const updateUser = asyncHandler(async (req, res) => {
   if (role) user.role = role;
 
   await user.save();
-  const updatedUser = await User.findById(id).populate("services");
+  const updatedUser = await User.findById(id);
 
   res.json(
     new ApiResponse(200, updatedUser, "User updated successfully", true)
@@ -100,10 +100,24 @@ const deleteUser = asyncHandler(async (req, res) => {
   res.json(new ApiResponse(200, null, "User deleted successfully", true));
 });
 
+const getUserById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const user = await User.findById(id).select("-password");
+  if (!user) {
+    return res
+      .status(404)
+      .json(new ApiResponse(404, null, "User not found", false));
+  }
+
+  res.json(new ApiResponse(200, user, "User fetched successfully", true));
+});
+
 module.exports = {
   getAllUsers,
   registerUser,
   loginUser,
   updateUser,
   deleteUser,
+  getUserById,
 };

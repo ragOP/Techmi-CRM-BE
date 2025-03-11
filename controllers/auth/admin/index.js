@@ -134,10 +134,60 @@ const deleteAdmin = asyncHandler(async (req, res) => {
   res.json(new ApiResponse(200, null, "Admin deleted successfully", true));
 });
 
-// const logoutAdmin = (req, res) => {
-//   res.clearCookie("refreshToken", { path: "/api/auth/refresh" });
-//   res.json(new ApiResponse(200, null, "Logged out successfully", true));
-// };
+const getAllSubAdmins = asyncHandler(async (req, res) => {
+  const admins = await Admin.find({ role: "sub_admin" })
+    .select("-password")
+    .populate("services");
+  res.json(
+    new ApiResponse(200, admins, "Sub Admins fetched successfully", true)
+  );
+});
+
+const registerSubAdmin = asyncHandler(async (req, res) => {
+  const { name, email, password, role } = req.body;
+
+  const reqAdmin = req.admin;
+  const adminId = reqAdmin.id;
+
+  if (reqAdmin.role !== "admin") {
+    return res
+      .status(400)
+      .json(
+        new ApiResponse(400, null, "Only admin can create sub admin", false)
+      );
+  }
+
+  const admin = await Admin.findOne({ email });
+
+  if (admin) {
+    return res
+      .status(400)
+      .json(new ApiResponse(400, null, "Sub Admin already exists", false));
+  }
+
+  const subAdmin = await Admin.create({
+    name,
+    email,
+    password,
+    role: "sub_admin",
+    created_by: adminId,
+  });
+
+  const accessToken = generateAccessToken(subAdmin._id);
+
+  const data = {
+    id: subAdmin.id,
+    name: subAdmin.name,
+    email: subAdmin.email,
+    token: accessToken,
+    role: subAdmin.role,
+    created_by: subAdmin.created_by,
+  };
+
+  res.json(
+    new ApiResponse(201, data, "New sub admin created successfully", true)
+  );
+});
 
 module.exports = {
   getAllAdmins,
@@ -145,5 +195,12 @@ module.exports = {
   loginAdmin,
   updateAdmin,
   deleteAdmin,
-  //   logoutAdmin,
+  getAllSubAdmins,
+  registerSubAdmin,
+  // logoutAdmin,
 };
+
+// const logoutAdmin = (req, res) => {
+//   res.clearCookie("refreshToken", { path: "/api/auth/refresh" });
+//   res.json(new ApiResponse(200, null, "Logged out successfully", true));
+// };

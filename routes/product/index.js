@@ -11,14 +11,22 @@ router.post(
   "/",
   admin,
   upload.fields([
-    { name: "banner_image", maxCount: 1 }, 
-    { name: "images", maxCount: 10 }, 
+    { name: "banner_image", maxCount: 1 },
+    { name: "images", maxCount: 10 },
   ]),
   ProductsController.createProduct
 );
 router.get("/", ProductsController.getAllProducts);
 router.get("/:id", ProductsController.getProductById);
-router.patch("/:id", admin, ProductsController.updateProduct);
+router.put(
+  "/:id",
+  admin,
+  upload.fields([
+    { name: "banner_image", maxCount: 1 },
+    { name: "images", maxCount: 10 },
+  ]),
+  ProductsController.updateProduct
+);
 router.delete("/:id", admin, ProductsController.deleteProduct);
 
 module.exports = router;

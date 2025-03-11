@@ -5,7 +5,7 @@ const ApiResponse = require("../../../utils/ApiResponse");
 const { generateAccessToken } = require("../../../utils/auth");
 
 const getAllUsers = asyncHandler(async (req, res) => {
-  const users = await User.find().select("-password");
+  const users = await User.find({}).sort({ createdAt: -1 }).select("-password");
   res.json(new ApiResponse(200, users, "Users fetched successfully", true));
 });
 
@@ -23,7 +23,6 @@ const registerUser = asyncHandler(async (req, res) => {
     name,
     email,
     password,
-    role,
   });
 
   const accessToken = generateAccessToken(user._id);
@@ -33,7 +32,7 @@ const registerUser = asyncHandler(async (req, res) => {
     name: user.name,
     email: user.email,
     token: accessToken,
-    role: role,
+    role: role ? role : "user",
   };
 
   res.json(new ApiResponse(201, data, "New user created successfully", true));

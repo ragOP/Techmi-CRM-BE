@@ -34,14 +34,9 @@ const CategorySchema = new mongoose.Schema(
     },
     created_by_admin: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Admin",
       required: true,
     },
-    // created_by_super_admin: {
-    //   type: mongoose.Schema.Types.ObjectId,
-    //   ref: "SuperAdmin",
-    //   required: true,
-    // },
     service: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Services",

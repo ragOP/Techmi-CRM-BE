@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const { type } = require("os");
 
 const ProductSchema = new mongoose.Schema(
   {
@@ -20,6 +19,33 @@ const ProductSchema = new mongoose.Schema(
     },
     discounted_price: {
       type: mongoose.Schema.Types.Decimal128,
+      default: null,
+      validate: {
+        validator: function (value) {
+          return value === null || value >= 0;
+        },
+        message: "Discounted price must be a non-negative number or null",
+      },
+    },
+    salesperson_discounted_price: {
+      type: mongoose.Schema.Types.Decimal128,
+      default: null,
+      validate: {
+        validator: function (value) {
+          return value === null || value >= 0;
+        },
+        message: "Discounted price must be a non-negative number or null",
+      },
+    },
+    dnd_discounted_price: {
+      type: mongoose.Schema.Types.Decimal128,
+      default: null,
+      validate: {
+        validator: function (value) {
+          return value === null || value >= 0;
+        },
+        message: "Discounted price must be a non-negative number or null",
+      },
     },
     instock: {
       type: Boolean,
@@ -60,10 +86,11 @@ const ProductSchema = new mongoose.Schema(
       type: [mongoose.Schema.Types.ObjectId],
       ref: "Category",
       required: true,
+      default: [],
     },
     created_by_admin: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Admin",
       required: true,
     },
   },
@@ -75,6 +102,14 @@ ProductSchema.set("toJSON", {
     if (ret.price) ret.price = parseFloat(ret.price.toString());
     if (ret.discounted_price)
       ret.discounted_price = parseFloat(ret.discounted_price.toString());
+    if (ret.dnd_discounted_price)
+      ret.dnd_discounted_price = parseFloat(
+        ret.dnd_discounted_price.toString()
+      );
+    if (ret.salesperson_discounted_price)
+      ret.salesperson_discounted_price = parseFloat(
+        ret.salesperson_discounted_price.toString()
+      );
     return ret;
   },
 });

@@ -5,13 +5,25 @@ const mongoose = require("mongoose");
 const { uploadMultipleFiles } = require("../../utils/upload/index.js");
 
 const getAllCategory = asyncHandler(async (req, res) => {
-  const { service_id } = req.query;
+  const {
+    service_id,
+    page = 1,
+    per_page = 50,
+    search = "",
+    sort = "latest",
+  } = req.query;
 
-  const categories = await CategoryService.getAllCategory({ service_id });
+  const categories = await CategoryService.getAllCategory({
+    service_id,
+    page,
+    per_page,
+    search,
+    sort,
+  });
 
   const result = {
     total: categories.length,
-    categories,
+    ...categories,
   };
   res.json(
     new ApiResponse(200, result, "Categories fetched successfully", true)

@@ -6,6 +6,7 @@ const {
   uploadMultipleFiles,
   uploadSingleFile,
 } = require("../../utils/upload/index.js");
+const Product = require("../../models/productsModel.js");
 
 const getAllProducts = asyncHandler(async (req, res) => {
   const {
@@ -65,7 +66,6 @@ const createProduct = asyncHandler(async (req, res) => {
     bannerImageFile.path,
     "uploads/images"
   );
-  console.log(">>", imageUrls, bannerImageUrl);
 
   let { meta_data } = req.body;
 
@@ -91,12 +91,49 @@ const createProduct = asyncHandler(async (req, res) => {
 });
 
 const updateProduct = asyncHandler(async (req, res) => {
-  const product = await ProductsServices.updateProduct(req.params.id, req.body);
+  const id = req.params.id
+  const product = await Product.findById(id);
+
   if (!product) {
     return res.json(new ApiResponse(404, null, "Product not found", false));
   }
 
-  res.json(new ApiResponse(200, product, "Product updated successfully", true));
+  const images = req.files?.images || [];
+  const bannerImageFile = req.files?.banner_image?.[0];
+
+  const imageUrls = images.length
+    ? await uploadMultipleFiles(images, "uploads/images")
+    : [];
+
+  const bannerImageUrl = await uploadSingleFile(
+    bannerImageFile.path,
+    "uploads/images"
+  );
+
+  let { meta_data } = req.body;
+
+  if (meta_data) {
+    try {
+      meta_data = JSON.parse(meta_data);
+    } catch (error) {
+      return res.json(
+        new ApiResponse(400, null, "Invalid meta_data format", false)
+      );
+    }
+  }
+
+  const productData = {
+    ...req.body,
+    images: imageUrls,
+    banner_image: bannerImageUrl,
+    meta_data,
+  };
+
+  const updatedProduct = await ProductsServices.updateProduct(id, productData);
+
+  res.json(
+    new ApiResponse(200, updatedProduct, "Product updated successfully", true)
+  );
 });
 
 const deleteProduct = asyncHandler(async (req, res) => {

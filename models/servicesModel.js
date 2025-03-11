@@ -27,7 +27,7 @@ const ServicesSchema = new mongoose.Schema(
     },
     created_by_admin: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Admin",
       required: true,
     },
   },

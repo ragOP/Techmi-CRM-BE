@@ -135,11 +135,17 @@ const deleteAdmin = asyncHandler(async (req, res) => {
 });
 
 const getAllSubAdmins = asyncHandler(async (req, res) => {
-  const admins = await Admin.find({ role: "sub_admin" })
+  const adminId = req.admin._id;
+
+  const subAdmins = await Admin.find({
+    role: "sub_admin",
+    created_by: adminId,
+  })
     .select("-password")
     .populate("services");
+
   res.json(
-    new ApiResponse(200, admins, "Sub Admins fetched successfully", true)
+    new ApiResponse(200, subAdmins, "Sub Admins fetched successfully", true)
   );
 });
 

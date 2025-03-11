@@ -34,7 +34,7 @@ const authenticateRole =
   };
 
 module.exports = {
-  user: authenticateRole(["user"]),
+  user: authenticateRole(["user", "salesperson", "dnd"]),
   salesperson: authenticateRole(["salesperson"]),
-  distributor: authenticateRole(["distributor"]),
+  distributor: authenticateRole(["dnd"]),
 };

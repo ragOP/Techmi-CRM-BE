@@ -1,8 +1,19 @@
 const Category = require("../../models/categoryModel");
 
-const getAllCategory = async ({ service_id }) => {
-  const filter = service_id ? { service: service_id } : {};
-  return await Category.find(filter);
+const getAllCategory = async ({ service_id, search, sortOrder, skip, limit }) => {
+  let filter = {};
+  if (service_id) filter.service = service_id;
+  if (search) filter.name = { $regex: search, $options: "i" }; 
+
+  return await Category.find(filter).sort(sortOrder).skip(skip).limit(limit);
+};
+
+const countAllCategories = async ({ service_id, search }) => {
+  let filter = {};
+  if (service_id) filter.service = service_id;
+  if (search) filter.name = { $regex: search, $options: "i" };
+
+  return await Category.countDocuments(filter);
 };
 
 const getCategoryById = async (id) => {
@@ -27,4 +38,5 @@ module.exports = {
   createCategory,
   updateCategory,
   deleteCategory,
+  countAllCategories
 };

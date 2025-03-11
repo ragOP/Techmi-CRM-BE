@@ -1,0 +1,149 @@
+const { asyncHandler } = require("../../../common/asyncHandler");
+const Admin = require("../../../models/adminModel");
+const Services = require("../../../models/servicesModel");
+const ApiResponse = require("../../../utils/ApiResponse");
+const {
+  generateAccessToken,
+  // generateRefreshToken,
+} = require("../../../utils/auth");
+
+const getAllAdmins = asyncHandler(async (req, res) => {
+  const admins = await Admin.find({ role: "admin" })
+    .select("-password")
+    .populate("services");
+  res.json(new ApiResponse(200, admins, "Admins fetched successfully", true));
+});
+
+const registerAdmin = asyncHandler(async (req, res) => {
+  const { name, email, password, role, services } = req.body;
+  const adminExists = await Admin.findOne({ email });
+
+  if (adminExists) {
+    return res
+      .status(400)
+      .json(new ApiResponse(400, null, "Admin already exists", false));
+  }
+
+  let validServices = [];
+  if (services?.length) {
+    validServices = await Services.find({ _id: { $in: services } });
+    if (validServices.length !== services.length) {
+      return res
+        .status(400)
+        .json(
+          new ApiResponse(400, null, "Invalid service IDs provided", false)
+        );
+    }
+  }
+
+  const admin = await Admin.create({
+    name,
+    email,
+    password,
+    role,
+    services: validServices.map((service) => service._id),
+  });
+
+  const accessToken = generateAccessToken(admin._id);
+  //   const refreshToken = generateRefreshToken(admin._id);
+
+  const data = {
+    id: admin.id,
+    name: admin.name,
+    email: admin.email,
+    token: accessToken,
+    role: admin.role,
+    services: validServices,
+  };
+
+  res.json(new ApiResponse(201, data, "New admin created successfully", true));
+});
+
+const loginAdmin = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+
+  const admin = await Admin.findOne({ email });
+  if (!admin || !(await admin.matchPassword(password))) {
+    return res
+      .status(401)
+      .json(new ApiResponse(401, null, "Invalid credentials", false));
+  }
+
+  const accessToken = generateAccessToken(admin._id);
+  //   const refreshToken = generateRefreshToken(admin._id);
+  //   sendRefreshToken(res, refreshToken);
+
+  const data = {
+    id: admin.id,
+    name: admin.name,
+    email: admin.email,
+    role: admin.role,
+    token: accessToken,
+  };
+
+  res.json(new ApiResponse(200, data, "Admin login successful", true));
+});
+
+const updateAdmin = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { name, email, role, services } = req.body;
+
+  const admin = await Admin.findById(id);
+  if (!admin) {
+    return res
+      .status(404)
+      .json(new ApiResponse(404, null, "Admin not found", false));
+  }
+
+  if (name) admin.name = name;
+  if (email) admin.email = email;
+  if (role) admin.role = role;
+  if (services?.length) {
+    const validServices = await Services.find({ _id: { $in: services } });
+    if (validServices.length !== services.length) {
+      return res
+        .status(400)
+        .json(
+          new ApiResponse(400, null, "Invalid service IDs provided", false)
+        );
+    }
+    admin.services = validServices.map((service) => service._id);
+  }
+
+  await admin.save();
+
+  const updatedAdmin = await Admin.findById(id).populate("services");
+
+  res.json(
+    new ApiResponse(200, updatedAdmin, "Admin updated successfully", true)
+  );
+});
+
+const deleteAdmin = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const admin = await Admin.findById(id);
+  if (!admin) {
+    return res
+      .status(404)
+      .json(new ApiResponse(404, null, "Admin not found", false));
+  }
+
+  await admin.deleteOne();
+
+  res.json(new ApiResponse(200, null, "Admin deleted successfully", true));
+});
+
+// const logoutAdmin = (req, res) => {
+//   res.clearCookie("refreshToken", { path: "/api/auth/refresh" });
+//   res.json(new ApiResponse(200, null, "Logged out successfully", true));
+// };
+
+module.exports = {
+  getAllAdmins,
+  registerAdmin,
+  loginAdmin,
+  updateAdmin,
+  deleteAdmin,
+  //   logoutAdmin,
+};

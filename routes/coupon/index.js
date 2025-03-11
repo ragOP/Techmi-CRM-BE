@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const couponController = require("../../controllers/coupon/index");
-const { admin } = require("../../middleware/authMiddleware");
+const { admin } = require("../../middleware/auth/adminMiddleware");
 
 router.post("/", admin, couponController.createCoupon);
 router.get("/:code/validate", admin, couponController.validateCoupon);

@@ -1,9 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const BlogController = require("../../controllers/blogs/index.js")
-const { admin } = require("../../middleware/authMiddleware");
 const multer = require("multer");
 const { storage } = require("../../config/multer.js");
+const { admin } = require("../../middleware/auth/adminMiddleware.js");
 
 const upload = multer({ storage: storage });
 

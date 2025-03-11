@@ -6,7 +6,10 @@ const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db.js");
 const swaggerSpec = require("./swagger.js");
 const swaggerUI = require("swagger-ui-express");
-const authRoutes = require("./routes/auth/index.js");
+
+// Routes Import
+const authAdminRoutes = require("./routes/auth/admin/index.js")
+const authUserRoutes = require("./routes/auth/user/index.js")
 const serviceRoutes = require("./routes/service/index.js");
 const categoryRoutes = require("./routes/category/index.js");
 const productRoutes = require("./routes/product/index.js");
@@ -22,6 +25,7 @@ const sericeConfigRoutes = require("./routes/service_config/index.js");
 const headerConfigRoute = require("./routes/header_config/index.js");
 const internalPageConfigRoute = require("./routes/internal_config/index.js")
 
+// Connect DB
 connectDB();
 
 const app = express();
@@ -32,7 +36,9 @@ app.use(cookieParser());
 app.use(cors());
 app.use(morgan("dev"));
 
-app.use("/api/auth", authRoutes);
+// Routes
+app.use("/api/auth/admin", authAdminRoutes);
+app.use("/api/auth/user", authUserRoutes);
 app.use("/api/service", serviceRoutes);
 app.use("/api/category", categoryRoutes);
 app.use("/api/product", productRoutes);
@@ -48,10 +54,12 @@ app.use("/api/service-page", sericeConfigRoutes);
 app.use("/api/header", headerConfigRoute);
 app.use("/api/internal", internalPageConfigRoute);
 
+// Documentation (Development)
 app.use("/api-doc", swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 
+// Default Route
 app.use("/", (req, res) => {
-  res.json({ message: "Welcome to the API" });
+  res.json({ message: "Invalid route" });
 });
 
 app.use((req, res) => res.status(404).json({ message: "Route not found" }));

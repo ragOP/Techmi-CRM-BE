@@ -1,8 +1,8 @@
 const express = require("express");
 const ServiceController = require("../../controllers/service/index.js");
-const { superAdmin } = require("../../middleware/authMiddleware.js");
 const multer = require("multer");
 const { storage } = require("../../config/multer.js");
+const { superAdmin } = require("../../middleware/auth/adminMiddleware.js");
 const router = express.Router();
 
 const upload = multer({ storage: storage });

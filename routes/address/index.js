@@ -1,7 +1,7 @@
 const express = require("express");
-const { user } = require("../../middleware/authMiddleware.js");
 const router = express.Router();
 const AddressController = require("../../controllers/address/index.js");
+const { user } = require("../../middleware/auth/userMiddleware.js");
 
 router.get("/", user, AddressController.getAllAddresses);
 router.get("/user/:id", user, AddressController.getAddressByUserId);

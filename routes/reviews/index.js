@@ -1,6 +1,6 @@
 const express = require("express");
 const ReviewController = require("../../controllers/review/index.js");
-const { user } = require("../../middleware/authMiddleware.js");
+const { user } = require("../../middleware/auth/userMiddleware.js");
 const router = express.Router();
 
 router.get("/", ReviewController.getAllReviews);

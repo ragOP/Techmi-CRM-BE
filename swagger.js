@@ -8,12 +8,11 @@ const swaggerDefinition = {
     description: "My API Description",
   },
 };
-const authRoutes = require("./routes/auth/index.js");
 
 const options = {
   swaggerDefinition,
   apis: [
-    "./routes/auth/index.js",
+    "./routes/auth/admin/index.js",
     "./routes/category/index.js",
     "./routes/service/index.js",
   ],

@@ -2,7 +2,7 @@ const express = require("express");
 const ProductsController = require("../../controllers/products/index.js");
 const multer = require("multer");
 const { storage } = require("../../config/multer.js");
-const { admin } = require("../../middleware/auth/adminMiddleware.js");
+const { admin, adminOrSubAdmin } = require("../../middleware/auth/adminMiddleware.js");
 const router = express.Router();
 
 const upload = multer({ storage: storage });
@@ -17,7 +17,7 @@ router.post(
   ProductsController.createProduct
 );
 
-router.get("/adminOrSubAdmin", admin, ProductsController.getProductsByAdmin);
+router.get("/admin", adminOrSubAdmin, ProductsController.getProductsByAdmin);
 router.get("/", ProductsController.getAllProducts);
 router.get("/:id", ProductsController.getProductById);
 router.put(

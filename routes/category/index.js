@@ -2,7 +2,7 @@ const express = require("express");
 const CategoryController = require("../../controllers/category/index.js");
 const multer = require("multer");
 const { storage } = require("../../config/multer.js");
-const { admin } = require("../../middleware/auth/adminMiddleware.js");
+const { admin, adminOrSubAdmin } = require("../../middleware/auth/adminMiddleware.js");
 const router = express.Router();
 
 const upload = multer({ storage: storage });
@@ -17,7 +17,7 @@ router.post(
 router.get("/", CategoryController.getAllCategory);
 
 // Admin Routes
-router.get("/admin", admin, CategoryController.getCategoriesByAdmin);
+router.get("/admin", adminOrSubAdmin, CategoryController.getCategoriesByAdmin);
 router.put(
   "/:id",
   admin,

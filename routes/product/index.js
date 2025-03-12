@@ -17,7 +17,7 @@ router.post(
   ProductsController.createProduct
 );
 
-router.get("/admin", admin, ProductsController.getProductsByAdmin);
+router.get("/adminOrSubAdmin", admin, ProductsController.getProductsByAdmin);
 router.get("/", ProductsController.getAllProducts);
 router.get("/:id", ProductsController.getProductById);
 router.put(

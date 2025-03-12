@@ -39,7 +39,7 @@ const deleteProduct = async (id) => {
 };
 
 const getProductsByAdmin = async (id) => {
-  return await ProductsRepository.find({ created_by_admin: id }).sort({ createdAt: -1 });
+  return await ProductsRepository.getProductsByAdmin(id);
 };
 
 module.exports = {
@@ -48,5 +48,5 @@ module.exports = {
   createProduct,
   updateProduct,
   deleteProduct,
-  getProductsByAdmin
+  getProductsByAdmin,
 };

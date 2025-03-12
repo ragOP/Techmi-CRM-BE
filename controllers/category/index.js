@@ -113,10 +113,24 @@ const deleteCategory = asyncHandler(async (req, res) => {
   res.json(new ApiResponse(200, null, "Category deleted successfully", true));
 });
 
+const getCategoriesByAdmin = asyncHandler(async (req, res) => {
+  const adminId = req.admin._id;
+  if (!adminId) {
+    return res.json(new ApiResponse(404, null, "Admin not found", false));
+  }
+
+  const categories = await CategoryService.getCategoriesByAdmin(adminId);
+
+  res.json(
+    new ApiResponse(200, categories, "Categories fetched successfully", true)
+  );
+});
+
 module.exports = {
   getAllCategory,
   getCategoryById,
   createCategory,
   updateCategory,
   deleteCategory,
+  getCategoriesByAdmin,
 };

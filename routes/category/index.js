@@ -7,6 +7,7 @@ const router = express.Router();
 
 const upload = multer({ storage: storage });
 
+// User Routes
 router.post(
   "/",
   admin,
@@ -14,13 +15,16 @@ router.post(
   CategoryController.createCategory
 );
 router.get("/", CategoryController.getAllCategory);
-router.get("/:id", admin, CategoryController.getCategoryById);
+
+// Admin Routes
+router.get("/admin", admin, CategoryController.getCategoriesByAdmin);
 router.put(
   "/:id",
   admin,
   upload.array("images"),
   CategoryController.updateCategory
 );
+router.get("/:id", admin, CategoryController.getCategoryById);
 router.delete("/:id", admin, CategoryController.deleteCategory);
 
 module.exports = router;

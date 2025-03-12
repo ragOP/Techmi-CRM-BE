@@ -91,7 +91,7 @@ const createProduct = asyncHandler(async (req, res) => {
 });
 
 const updateProduct = asyncHandler(async (req, res) => {
-  const id = req.params.id
+  const id = req.params.id;
   const product = await Product.findById(id);
 
   if (!product) {
@@ -145,10 +145,24 @@ const deleteProduct = asyncHandler(async (req, res) => {
   res.json(new ApiResponse(200, null, "Product deleted successfully", true));
 });
 
+const getProductsByAdmin = asyncHandler(async (req, res) => {
+  const adminId = req.admin._id;
+  if (!adminId) {
+    return res.json(new ApiResponse(404, null, "Admin not found", false));
+  }
+
+  const products = await ProductsServices.getProductsByAdmin(adminId);
+
+  res.json(
+    new ApiResponse(200, products, "Product fetched successfully", true)
+  );
+});
+
 module.exports = {
   getAllProducts,
   getProductById,
   createProduct,
   updateProduct,
   deleteProduct,
+  getProductsByAdmin,
 };

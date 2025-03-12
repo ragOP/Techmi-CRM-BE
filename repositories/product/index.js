@@ -135,10 +135,15 @@ const deleteProduct = async (id) => {
   return await Product.findByIdAndDelete(id);
 };
 
+const getProductsByAdmin = async (id) => {
+  return await Product.find({ created_by_admin: id }).sort({ createdAt: -1 });
+};
+
 module.exports = {
   getAllProducts,
   getProductById,
   createProduct,
   updateProduct,
   deleteProduct,
+  getProductsByAdmin,
 };

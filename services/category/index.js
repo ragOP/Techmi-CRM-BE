@@ -43,10 +43,15 @@ const deleteCategory = async (id) => {
   return await CategoryRepository.deleteCategory(id);
 };
 
+const getCategoriesByAdmin = async (id) => {
+  return await CategoryRepository.getCategoriesByAdmin(id);
+}
+
 module.exports = {
   getAllCategory,
   getCategoryById,
   createCategory,
   updateCategory,
   deleteCategory,
+  getCategoriesByAdmin
 };

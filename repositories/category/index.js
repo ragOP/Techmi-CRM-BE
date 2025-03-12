@@ -1,9 +1,15 @@
 const Category = require("../../models/categoryModel");
 
-const getAllCategory = async ({ service_id, search, sortOrder, skip, limit }) => {
+const getAllCategory = async ({
+  service_id,
+  search,
+  sortOrder,
+  skip,
+  limit,
+}) => {
   let filter = {};
   if (service_id) filter.service = service_id;
-  if (search) filter.name = { $regex: search, $options: "i" }; 
+  if (search) filter.name = { $regex: search, $options: "i" };
 
   return await Category.find(filter).sort(sortOrder).skip(skip).limit(limit);
 };
@@ -32,11 +38,16 @@ const deleteCategory = async (id) => {
   return await Category.findByIdAndDelete(id);
 };
 
+const getCategoriesByAdmin = async (id) => {
+  return await Category.find({ created_by_admin: id }).sort({ createdAt: -1 });
+};
+
 module.exports = {
   getAllCategory,
   getCategoryById,
   createCategory,
   updateCategory,
   deleteCategory,
-  countAllCategories
+  countAllCategories,
+  getCategoriesByAdmin,
 };

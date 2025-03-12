@@ -38,10 +38,15 @@ const deleteProduct = async (id) => {
   return await ProductsRepository.deleteProduct(id);
 };
 
+const getProductsByAdmin = async (id) => {
+  return await ProductsRepository.find({ created_by_admin: id }).sort({ createdAt: -1 });
+};
+
 module.exports = {
   getAllProducts,
   getProductById,
   createProduct,
   updateProduct,
   deleteProduct,
+  getProductsByAdmin
 };

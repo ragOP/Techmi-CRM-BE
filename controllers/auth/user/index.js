@@ -3,6 +3,7 @@ const User = require("../../../models/userModel");
 const Services = require("../../../models/servicesModel");
 const ApiResponse = require("../../../utils/ApiResponse");
 const { generateAccessToken } = require("../../../utils/auth");
+const { verifyToken } = require("../../../utils/auth");
 
 const getAllUsers = asyncHandler(async (req, res) => {
   const users = await User.find({}).sort({ createdAt: -1 }).select("-password");
@@ -112,6 +113,36 @@ const getUserById = asyncHandler(async (req, res) => {
   res.json(new ApiResponse(200, user, "User fetched successfully", true));
 });
 
+const getUsersByRole = asyncHandler(async (req, res) => {
+  console.log('1111')
+  const userId = req.user._id;
+  const { role } = req.query;
+  
+  console.log("userId", userId);
+  if (!userId) {
+    return res
+      .status(404)
+      .json(new ApiResponse(404, null, "User not found", false));
+  }
+
+  const validRoles = ["salesperson", "dnd"];
+  if (!validRoles.includes(role)) {
+    return res
+      .status(400)
+      .json(new ApiResponse(400, null, "Invalid role specified", false));
+  }
+
+  const users = await User.find({ role }).select("-password");
+  res.json(
+    new ApiResponse(
+      200,
+      users,
+      `${role.charAt(0).toUpperCase() + role.slice(1)} fetched successfully`,
+      true
+    )
+  );
+});
+
 module.exports = {
   getAllUsers,
   registerUser,
@@ -119,4 +150,5 @@ module.exports = {
   updateUser,
   deleteUser,
   getUserById,
+  getUsersByRole,
 };

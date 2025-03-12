@@ -37,5 +37,5 @@ const authenticateRole =
 module.exports = {
   superAdmin: authenticateRole(["super_admin"]),
   admin: authenticateRole(["admin"]),
-  sub_admin: authenticateRole(["sub_admin"]),
+  subAdmin: authenticateRole(["sub_admin"]),
 };

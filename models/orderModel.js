@@ -1,4 +1,3 @@
-// models/Order.js
 const mongoose = require("mongoose");
 
 const OrderItemSchema = new mongoose.Schema({
@@ -17,7 +16,16 @@ const OrderItemSchema = new mongoose.Schema({
         required: true
       },
       discounted_price: {
-        type: mongoose.Schema.Types.Decimal128
+        type: mongoose.Schema.Types.Decimal128,
+        default: null
+      },
+      salesperson_discounted_price: {
+        type: mongoose.Schema.Types.Decimal128,
+        default: null
+      },
+      dnd_discounted_price: {
+        type: mongoose.Schema.Types.Decimal128,
+        default: null
       },
       banner_image: String
     }),
@@ -64,16 +72,29 @@ const OrderSchema = new mongoose.Schema({
 
 OrderSchema.set("toJSON", {
   transform: (doc, ret) => {
+    // Convert totalAmount to number
     ret.totalAmount = parseFloat(ret.totalAmount.toString());
-    ret.items = ret.items.map(item => ({
-      ...item,
-      product: {
-        ...item.product,
-        price: parseFloat(item.product.price.toString()),
-        discounted_price: item.product.discounted_price ? 
-          parseFloat(item.product.discounted_price.toString()) : null
-      }
-    }));
+
+    // Ensure ret.items is an array before mapping
+    if (Array.isArray(ret.items)) {
+      ret.items = ret.items.map(item => ({
+        ...item,
+        product: {
+          ...item.product,
+          price: parseFloat(item.product.price.toString()),
+          discounted_price: item.product.discounted_price
+            ? parseFloat(item.product.discounted_price.toString())
+            : null,
+          salesperson_discounted_price: item.product.salesperson_discounted_price
+            ? parseFloat(item.product.salesperson_discounted_price.toString())
+            : null,
+          dnd_discounted_price: item.product.dnd_discounted_price
+            ? parseFloat(item.product.dnd_discounted_price.toString())
+            : null
+        }
+      }));
+    }
+
     return ret;
   }
 });

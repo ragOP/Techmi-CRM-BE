@@ -18,78 +18,88 @@ const getAllOrders = asyncHandler(async (req, res) => {
 
   const { service_id, page = 1, per_page = 50, search = "" } = req.query;
 
-  // Base query with search conditions
-  const query = {
-    $and: [],
-  };
+  try {
+    let query = {}; // Default query to fetch all orders
 
-  // Add search conditions if present
-  if (search) {
-    query.$and.push({
-      $or: [
-        { "user.name": { $regex: search, $options: "i" } },
-        { "user.email": { $regex: search, $options: "i" } },
-        { "items.product.name": { $regex: search, $options: "i" } },
-      ],
-    });
-  }
+    // Apply filters only if service_id is provided
+    if (service_id) {
+      // Check if service_id is a valid ObjectId
+      if (!mongoose.Types.ObjectId.isValid(service_id)) {
+        return res
+          .status(400)
+          .json(new ApiResponse(400, null, "Invalid service_id format", false));
+      }
 
-  // Add service filter if service_id is provided
-  if (service_id) {
-    // 1. Find categories belonging to this service
-    const categories = await Category.find({ service: service_id }).select(
-      "_id"
-    );
-    const categoryIds = categories.map((c) => c._id);
+      // Convert service_id to ObjectId
+      const serviceObjectId = new mongoose.Types.ObjectId(service_id);
 
-    // 2. Find products in these categories
-    const products = await Product.find({
-      category: { $in: categoryIds },
-    }).select("_id");
-    const productIds = products.map((p) => p._id);
+      // Step 1: Get categories linked to the service
+      const categoryIds = await Category.find({
+        service: serviceObjectId,
+      }).distinct("_id");
+      console.log("Category IDs:", categoryIds);
 
-    // 3. Add product filter to query
-    query.$and.push({
-      "items.product": { $in: productIds },
-    });
-  }
+      if (categoryIds.length === 0) {
+        return res
+          .status(404)
+          .json(
+            new ApiResponse(
+              404,
+              null,
+              "No categories found for this service",
+              false
+            )
+          );
+      }
 
-  // Remove $and if empty
-  if (query.$and.length === 0) {
-    delete query.$and;
-  }
+      // Step 2: Get products in these categories
+      const productIds = await Product.find({
+        category: { $in: categoryIds },
+      }).distinct("_id");
 
-  // Execute query
-  const orders = await Order.find(query)
-    .sort({ createdAt: -1 })
-    .skip((page - 1) * per_page)
-    .limit(parseInt(per_page, 10))
-    .lean();
+      console.log("Product IDs:", productIds);
 
-  // Additional processing for service IDs (if needed)
-  const ordersWithServices = orders.map((order) => ({
-    ...order,
-    serviceIds: [
-      ...new Set(
-        order.items.flatMap((item) =>
-          item.product.category?.map((catId) => catId.service)
+      if (productIds.length === 0) {
+        return res
+          .status(404)
+          .json(
+            new ApiResponse(
+              404,
+              null,
+              "No products found in these categories",
+              false
+            )
+          );
+      }
+
+      // Update query to filter orders containing these products
+      query = { "items.product._id": { $in: productIds } };
+    }
+
+    // Step 3: Find orders based on the query
+    const orders = await Order.find(query)
+      .sort({ createdAt: -1 }) // Sort by latest orders
+      .skip((page - 1) * per_page) // Pagination
+      .limit(parseInt(per_page, 10));
+
+    console.log("Orders found:", orders.length);
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { data: orders },
+          "Orders fetched successfully",
+          true
         )
-      ),
-    ],
-  }));
-
-  const totalOrders = await Order.countDocuments(query);
-
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        { data: ordersWithServices, total: totalOrders },
-        "Orders fetched successfully",
-        true
-      )
-    );
+      );
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    return res
+      .status(500)
+      .json(new ApiResponse(500, null, "Server error", false));
+  }
 });
 
 const createOrder = asyncHandler(async (req, res) => {

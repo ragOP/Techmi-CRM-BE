@@ -5,8 +5,9 @@ const mongoose = require("mongoose");
 
 const getCart = asyncHandler(async (req, res) => {
   const { user_id } = req.query;
+  const { role } = req.user;
 
-  const cart = await CartService.getCart({ user_id });
+  const cart = await CartService.getCart({ user_id , role});
   const data = {
     cart: cart,
     total: !user_id ? cart.length : cart ? 1 : 0,
@@ -17,8 +18,9 @@ const getCart = asyncHandler(async (req, res) => {
 
 const addToCart = asyncHandler(async (req, res) => {
   const { user_id, product_id, quantity } = req.body;
+  const { role } = req.user;
 
-  const cartItem = await CartService.updateCart(user_id, product_id, quantity);
+  const cartItem = await CartService.updateCart(user_id, product_id, quantity, role);
   res.json(
     new ApiResponse(201, cartItem, "Item added to cart successfully", true)
   );
@@ -26,7 +28,6 @@ const addToCart = asyncHandler(async (req, res) => {
 
 const deleteCartItem = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  console.log("ID", id);
 
   await CartService.deleteCart(id);
   res.json(new ApiResponse(200, null, "Cart deleted successfully", true));

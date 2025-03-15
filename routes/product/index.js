@@ -18,6 +18,8 @@ router.post(
 );
 
 router.get("/admin", adminOrSubAdmin, ProductsController.getProductsByAdmin);
+router.post('/batch', admin, ProductsController.bulkCreateProducts);
+
 router.get("/", ProductsController.getAllProducts);
 router.get("/:id", ProductsController.getProductById);
 router.put(

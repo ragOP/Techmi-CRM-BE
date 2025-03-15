@@ -139,6 +139,32 @@ const getProductsByAdmin = async (id) => {
   return await Product.find({ created_by_admin: id }).sort({ createdAt: -1 });
 };
 
+const bulkCreateProducts = async (productsData) => {
+  try {
+    if (!Array.isArray(productsData)) {
+      throw new Error("Input must be an array of product data");
+    }
+
+    const createdProducts = await Product.insertMany(productsData, {
+      ordered: false,
+    });
+
+    return createdProducts;
+  } catch (error) {
+    if (error.writeErrors) {
+      const errors = error.writeErrors.map((err) => ({
+        index: err.index,
+        error: err.errmsg,
+      }));
+      throw new Error(
+        `Bulk create failed for some products: ${JSON.stringify(errors)}`
+      );
+    } else {
+      throw new Error(`Bulk create failed: ${error.message}`);
+    }
+  }
+};
+
 module.exports = {
   getAllProducts,
   getProductById,
@@ -146,4 +172,5 @@ module.exports = {
   updateProduct,
   deleteProduct,
   getProductsByAdmin,
+  bulkCreateProducts,
 };

@@ -41,8 +41,6 @@ const updateCart = async (user_id, product_id, quantity, role) => {
         : productData.price;
   }
 
-  console.log("ROLE", role, productPrice);
-
   if (!cart) {
     if (quantity > 0) {
       cart = await CartRepository.addToCart({

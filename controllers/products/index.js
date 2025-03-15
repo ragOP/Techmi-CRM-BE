@@ -158,6 +158,29 @@ const getProductsByAdmin = asyncHandler(async (req, res) => {
   );
 });
 
+const bulkCreateProducts = asyncHandler(async (req, res) => {
+  const products = req.body;
+  const adminId = req.admin._id;
+
+  if (!adminId) {
+    return res
+      .status(400)
+      .json(new ApiResponse(400, null, "Admin not found", false));
+  }
+
+  if (!products?.length) {
+    return res
+      .status(400)
+      .json(new ApiResponse(400, null, "No products provided", false));
+  }
+
+  const result = await ProductsServices.bulkCreateProducts(products, adminId);
+
+  res
+    .status(207)
+    .json(new ApiResponse(207, result, "Batch processing completed", true));
+});
+
 module.exports = {
   getAllProducts,
   getProductById,
@@ -165,4 +188,5 @@ module.exports = {
   updateProduct,
   deleteProduct,
   getProductsByAdmin,
+  bulkCreateProducts,
 };

@@ -9,13 +9,17 @@ const getAllBlogs = async (featured) => {
   return await Blog.find(filter);
 };
 
-
 const getSingleBlogById = async (id) => {
-  return await Blog.findById(id)
-}
+  return await Blog.findById(id);
+};
+
+const updateBlogById = async (id, data) => {
+  return await Blog.findByIdAndUpdate(id, data, { new: true });
+};
 
 module.exports = {
   createNewBlog,
   getAllBlogs,
-  getSingleBlogById
+  getSingleBlogById,
+  updateBlogById,
 };

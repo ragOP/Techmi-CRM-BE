@@ -1,14 +1,14 @@
-const ContactForm = require("../../models/contact.js");
 const ApiResponse = require("../../utils/ApiResponse.js");
 const BlogRepositiories = require("../../repositories/blogs/index.js");
+const { asyncHandler } = require("../../common/asyncHandler.js");
 
 const addNewBlog = async (
-    title,
-    short_description,
-    content,
-    bannerImageUrl,
-    category,
-    isFeatured,
+  title,
+  short_description,
+  content,
+  bannerImageUrl,
+  service,
+  isFeatured
 ) => {
   const data = {
     title,
@@ -17,7 +17,7 @@ const addNewBlog = async (
     bannerImageUrl,
     author: "admin",
     published: true,
-    category,
+    service,
     isFeatured,
   };
   let blogs = await BlogRepositiories.createNewBlog(data);
@@ -27,6 +27,18 @@ const addNewBlog = async (
   return blogs;
 };
 
+const updateBlog = asyncHandler(async (id, data) => {
+  const blog = await BlogRepositiories.getSingleBlogById(id);
+  if (!blog) {
+    return res.json(new ApiResponse(404, null, "No Blog Found", false));
+  }
+  const updatedBlog = await BlogRepositiories.updateBlogById(id, data);
+  return res.json(
+    new ApiResponse(201, updatedBlog, "Blog Updated successfully", true)
+  );
+});
+
 module.exports = {
-    addNewBlog,
+  addNewBlog,
+  updateBlog,
 };

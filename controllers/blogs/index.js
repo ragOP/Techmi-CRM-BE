@@ -6,7 +6,7 @@ const BlogRepositories = require("../../repositories/blogs/index.js");
 const { uploadSingleFile } = require("../../utils/upload/index.js");
 
 const postBlogs = asyncHandler(async (req, res) => {
-  const { title, short_description, content, category, isFeatured } = req.body;
+  const { title, short_description, content, service, isFeatured } = req.body;
   const bannerImageFile = req.file;
 
   if (
@@ -14,7 +14,7 @@ const postBlogs = asyncHandler(async (req, res) => {
     !short_description ||
     !content ||
     !bannerImageFile ||
-    !category
+    !service
   ) {
     throw new ApiResponse(404, null, "Required Filled are missing", false);
   }
@@ -29,7 +29,7 @@ const postBlogs = asyncHandler(async (req, res) => {
     short_description,
     content,
     bannerImageUrl,
-    category,
+    service,
     isFeatured
   );
   return res.json(
@@ -67,8 +67,41 @@ const getSingleBlog = asyncHandler(async (req, res) => {
   );
 });
 
+const updateBlog = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.json(
+      new ApiResponse(400, null, "Invalid blog ID format", false)
+    );
+  }
+  const blog = await BlogService.updateBlog(id);
+
+  return res.json(
+    new ApiResponse(201, updatedBlog, "Blog Updated successfully", true)
+  );
+});
+
+const deleteBlog = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.json(
+      new ApiResponse(400, null, "Invalid blog ID format", false)
+    );
+  }
+  const blog = await BlogRepositories.getSingleBlogById(id);
+  if (!blog) {
+    return res.json(new ApiResponse(404, null, "No Blog Found", false));
+  }
+  await BlogRepositories.deleteBlogById(id);
+  return res.json(
+    new ApiResponse(201, null, "Blog Deleted successfully", true)
+  );
+});
+
 module.exports = {
   postBlogs,
   getBlogs,
   getSingleBlog,
+  updateBlog,
+  deleteBlog,
 };

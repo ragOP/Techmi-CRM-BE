@@ -18,16 +18,17 @@ const BlogSchema = new mongoose.Schema(
       trim: true,
     },
     bannerImageUrl: {
-        type: String,
+      type: String,
       required: true,
     },
     author: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Admin",
       required: true,
-      trim: true,
     },
-    category: {
-      type: String,
+    service: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Service",
       required: true,
     },
     published: {

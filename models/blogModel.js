@@ -28,7 +28,7 @@ const BlogSchema = new mongoose.Schema(
     },
     service: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Service",
+      ref: "Services",
       required: true,
     },
     published: {

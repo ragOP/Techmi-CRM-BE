@@ -19,21 +19,17 @@ const getAllOrders = asyncHandler(async (req, res) => {
   const { service_id, page = 1, per_page = 50, search = "" } = req.query;
 
   try {
-    let query = {}; // Default query to fetch all orders
+    let query = {};
 
-    // Apply filters only if service_id is provided
     if (service_id) {
-      // Check if service_id is a valid ObjectId
       if (!mongoose.Types.ObjectId.isValid(service_id)) {
         return res
           .status(400)
           .json(new ApiResponse(400, null, "Invalid service_id format", false));
       }
 
-      // Convert service_id to ObjectId
       const serviceObjectId = new mongoose.Types.ObjectId(service_id);
 
-      // Step 1: Get categories linked to the service
       const categoryIds = await Category.find({
         service: serviceObjectId,
       }).distinct("_id");
@@ -52,12 +48,9 @@ const getAllOrders = asyncHandler(async (req, res) => {
           );
       }
 
-      // Step 2: Get products in these categories
       const productIds = await Product.find({
         category: { $in: categoryIds },
       }).distinct("_id");
-
-      console.log("Product IDs:", productIds);
 
       if (productIds.length === 0) {
         return res
@@ -72,17 +65,25 @@ const getAllOrders = asyncHandler(async (req, res) => {
           );
       }
 
-      // Update query to filter orders containing these products
       query = { "items.product._id": { $in: productIds } };
     }
 
-    // Step 3: Find orders based on the query
-    const orders = await Order.find(query)
-      .sort({ createdAt: -1 }) // Sort by latest orders
-      .skip((page - 1) * per_page) // Pagination
-      .limit(parseInt(per_page, 10));
+    if (search.trim()) {
+      const productIdsByName = await Product.find({
+        name: { $regex: search, $options: "i" },
+      }).distinct("_id");
 
-    console.log("Orders found:", orders.length);
+      query["$or"] = [
+        { orderNumber: { $regex: search, $options: "i" } },
+        { "customer.name": { $regex: search, $options: "i" } },
+        { "items.product._id": { $in: productIdsByName } },
+      ];
+    }
+
+    const orders = await Order.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * per_page)
+      .limit(parseInt(per_page, 10));
 
     return res
       .status(200)
@@ -304,4 +305,60 @@ const getOrderHistory = asyncHandler(async (req, res) => {
   }
 });
 
-module.exports = { createOrder, getOrderHistory, getAllOrders };
+const updateOrder = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const adminId = req.admin._id;
+
+  if (!adminId) {
+    return res
+      .status(401)
+      .json(new ApiResponse(401, null, "Unauthorized", false));
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res
+      .status(400)
+      .json(new ApiResponse(400, null, "Invalid order ID", false));
+  }
+
+  const order = await Order.findById(id);
+
+  if (!order) {
+    return res
+      .status(404)
+      .json(new ApiResponse(404, null, "Order not found", false));
+  }
+
+  const { status } = req.body;
+
+  if (!status) {
+    return res
+      .status(400)
+      .json(new ApiResponse(400, null, "Status is required", false));
+  }
+
+  const ORDER_STATUSES = [
+    "pending",
+    "processing",
+    "shipped",
+    "delivered",
+    "cancelled",
+  ];
+
+  if (!ORDER_STATUSES.includes(status)) {
+    return res
+      .status(400)
+      .json(new ApiResponse(400, null, "Invalid status", false));
+  }
+
+  order.status = status;
+  await order.save();
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, order, "Order status updated successfully", true)
+    );
+});
+
+module.exports = { createOrder, getOrderHistory, getAllOrders, updateOrder };

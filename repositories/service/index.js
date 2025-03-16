@@ -5,13 +5,18 @@ const getAllServicesForSuperAdmins = async () => {
   const superAdmin = await User.findOne({ is_super_admin: true }).select("_id");
   if (!superAdmin) return [];
 
-  return await Services.find({ created_by_admin: superAdmin._id });
+  return await Services.find({ created_by_admin: superAdmin._id }).sort({
+    createdAt: -1,
+  });
 };
 
 const getAllServices = async ({ filters, page, per_page }) => {
   const skip = (page - 1) * per_page;
 
-  return await Services.find(filters).skip(skip).limit(per_page);
+  return await Services.find(filters)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(per_page);
 };
 
 const getServiceById = async (id) => {

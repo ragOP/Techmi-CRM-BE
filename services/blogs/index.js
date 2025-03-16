@@ -8,17 +8,18 @@ const addNewBlog = async (
   content,
   bannerImageUrl,
   service,
-  isFeatured
+  isFeatured,
+  adminId
 ) => {
   const data = {
     title,
     short_description,
     content,
     bannerImageUrl,
-    author: "admin",
     published: true,
     service,
     isFeatured,
+    author: adminId,
   };
   let blogs = await BlogRepositiories.createNewBlog(data);
   if (!blogs) {
@@ -30,12 +31,11 @@ const addNewBlog = async (
 const updateBlog = asyncHandler(async (id, data) => {
   const blog = await BlogRepositiories.getSingleBlogById(id);
   if (!blog) {
-    return res.json(new ApiResponse(404, null, "No Blog Found", false));
+    throw new Error("Blog not found"); 
   }
+
   const updatedBlog = await BlogRepositiories.updateBlogById(id, data);
-  return res.json(
-    new ApiResponse(201, updatedBlog, "Blog Updated successfully", true)
-  );
+  return updatedBlog;
 });
 
 module.exports = {

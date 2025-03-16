@@ -4,9 +4,16 @@ const createNewBlog = async (data) => {
   return await Blog.create(data);
 };
 
-const getAllBlogs = async (featured) => {
-  const filter = featured ? { isFeatured: true } : {};
-  return await Blog.find(filter);
+const getAllBlogs = async ({ filters, page, per_page }) => {
+  const skip = (page - 1) * per_page;
+
+  const blogs = await Blog.find(filters)
+    .populate("author", "-password")
+    .skip(skip)
+    .sort({ createdAt: -1 })
+    .limit(per_page);
+
+  return blogs;
 };
 
 const getSingleBlogById = async (id) => {

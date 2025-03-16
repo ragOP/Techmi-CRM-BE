@@ -8,10 +8,41 @@ const {
 } = require("../../../utils/auth");
 
 const getAllAdmins = asyncHandler(async (req, res) => {
-  const admins = await Admin.find({ role: "admin" })
+  const { search = "", page = 1, per_page = 50 } = req.query;
+
+  const superAdminId = req.admin._id;
+
+  if (!superAdminId) {
+    return res.json(new ApiResponse(404, null, "Not authorized"));
+  }
+
+  const query = { role: "admin" };
+
+  if (search) {
+    query.$or = [
+      { name: { $regex: search, $options: "i" } },
+      { email: { $regex: search, $options: "i" } },
+    ];
+  }
+
+  const skip = (page - 1) * per_page;
+
+  const admins = await Admin.find(query)
     .select("-password")
-    .populate("services");
-  res.json(new ApiResponse(200, admins, "Admins fetched successfully", true));
+    .populate("services")
+    .skip(skip)
+    .limit(parseInt(per_page, 10));
+
+  const totalAdmins = await Admin.countDocuments(query);
+
+  res.json(
+    new ApiResponse(
+      200,
+      { data: admins, total: totalAdmins },
+      "Admins fetched successfully",
+      true
+    )
+  );
 });
 
 const registerAdmin = asyncHandler(async (req, res) => {

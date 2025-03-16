@@ -9,11 +9,14 @@ const {
   getAllSubAdmins,
   registerSubAdmin,
 } = require("../../../controllers/auth/admin/index");
-const { admin } = require("../../../middleware/auth/adminMiddleware");
+const {
+  admin,
+  superAdmin,
+} = require("../../../middleware/auth/adminMiddleware");
 
 const router = express.Router();
 
-router.get("/", getAllAdmins);
+router.get("/", superAdmin, getAllAdmins);
 router.post("/register", registerAdmin);
 router.post("/login", loginAdmin);
 router.get("/sub-admin", admin, getAllSubAdmins);

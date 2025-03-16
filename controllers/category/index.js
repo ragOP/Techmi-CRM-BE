@@ -119,7 +119,14 @@ const getCategoriesByAdmin = asyncHandler(async (req, res) => {
     return res.json(new ApiResponse(404, null, "Admin not found", false));
   }
 
-  const categories = await CategoryService.getCategoriesByAdmin(adminId);
+  const { page = 1, per_page = 50, search = "" } = req.query;
+
+  const categories = await CategoryService.getCategoriesByAdmin({
+    id: adminId,
+    page,
+    per_page,
+    search,
+  });
 
   res.json(
     new ApiResponse(200, categories, "Categories fetched successfully", true)

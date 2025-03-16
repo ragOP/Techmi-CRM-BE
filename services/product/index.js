@@ -41,8 +41,16 @@ const deleteProduct = async (id) => {
   return await ProductsRepository.deleteProduct(id);
 };
 
-const getProductsByAdmin = async (id) => {
-  return await ProductsRepository.getProductsByAdmin(id);
+const getProductsByAdmin = async ({ id, page, per_page, search }) => {
+  const filters = {
+    ...(search && { name: { $regex: search, $options: "i" } }),
+  };
+  return await ProductsRepository.getProductsByAdmin({
+    id,
+    filters,
+    page,
+    per_page,
+  });
 };
 
 const bulkCreateProducts = async (products, adminId) => {

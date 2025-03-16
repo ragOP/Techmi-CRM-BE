@@ -43,9 +43,17 @@ const deleteCategory = async (id) => {
   return await CategoryRepository.deleteCategory(id);
 };
 
-const getCategoriesByAdmin = async (id) => {
-  return await CategoryRepository.getCategoriesByAdmin(id);
-}
+const getCategoriesByAdmin = async ({ id, search, page, per_page }) => {
+  const filters = {
+    ...(search && { name: { $regex: search, $options: "i" } }),
+  };
+  return await CategoryRepository.getCategoriesByAdmin({
+    id,
+    filters,
+    page,
+    per_page,
+  });
+};
 
 module.exports = {
   getAllCategory,
@@ -53,5 +61,5 @@ module.exports = {
   createCategory,
   updateCategory,
   deleteCategory,
-  getCategoriesByAdmin
+  getCategoriesByAdmin,
 };

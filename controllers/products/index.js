@@ -151,7 +151,14 @@ const getProductsByAdmin = asyncHandler(async (req, res) => {
     return res.json(new ApiResponse(404, null, "Admin not found", false));
   }
 
-  const products = await ProductsServices.getProductsByAdmin(adminId);
+  const { page = 1, per_page = 10, search } = req.query;
+
+  const products = await ProductsServices.getProductsByAdmin({
+    id: adminId,
+    page,
+    per_page,
+    search,
+  });
 
   res.json(
     new ApiResponse(200, products, "Product fetched successfully", true)

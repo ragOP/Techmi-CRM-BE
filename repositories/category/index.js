@@ -38,8 +38,16 @@ const deleteCategory = async (id) => {
   return await Category.findByIdAndDelete(id);
 };
 
-const getCategoriesByAdmin = async (id) => {
-  return await Category.find({ created_by_admin: id }).sort({ createdAt: -1 });
+const getCategoriesByAdmin = async ({ id, filters, page, per_page }) => {
+  const skip = (page - 1) * per_page;
+  const limit = parseInt(per_page, 10);
+
+  return await Category.find({ ...filters, created_by_admin: id })
+    .sort({
+      createdAt: -1,
+    })
+    .skip(skip)
+    .limit(limit);
 };
 
 module.exports = {

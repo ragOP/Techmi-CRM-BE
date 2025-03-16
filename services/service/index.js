@@ -1,9 +1,16 @@
 const User = require("../../models/userModel.js");
 const ServiceRepository = require("../../repositories/service/index.js");
 
-const getAllServices = async () => {
-  // return await ServiceRepository.getAllServicesForSuperAdmins();
-  return await ServiceRepository.getAllServices();
+const getAllServices = async ({ search, page, per_page }) => {
+  const filters = {
+    ...(search && {
+      name: {
+        $regex: search,
+        $options: "i",
+      },
+    }),
+  };
+  return await ServiceRepository.getAllServices({ filters, page, per_page });
 };
 
 const getServiceById = async (id) => {

@@ -1,12 +1,32 @@
 const { asyncHandler } = require("../../../common/asyncHandler");
 const User = require("../../../models/userModel");
-const Services = require("../../../models/servicesModel");
 const ApiResponse = require("../../../utils/ApiResponse");
 const { generateAccessToken } = require("../../../utils/auth");
-const { verifyToken } = require("../../../utils/auth");
 
 const getAllUsers = asyncHandler(async (req, res) => {
-  const users = await User.find({}).sort({ createdAt: -1 }).select("-password");
+  const superAdminId = req.admin._id;
+
+  if (!superAdminId) {
+    return res.json(new ApiResponse(404, null, "Not authorized"));
+  }
+
+  const { search, page, per_page = 50 } = req.query;
+
+  const filters = {
+    ...(search && {
+      name: { $regex: search, $options: "i" },
+      email: { $regex: search, $options: "i" },
+    }),
+  };
+
+  const skip = (page - 1) * per_page;
+
+  const users = await User.find(filters)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(per_page)
+    .select("-password");
+
   res.json(new ApiResponse(200, users, "Users fetched successfully", true));
 });
 
@@ -114,10 +134,10 @@ const getUserById = asyncHandler(async (req, res) => {
 });
 
 const getUsersByRole = asyncHandler(async (req, res) => {
-  console.log('1111')
+  console.log("1111");
   const userId = req.user._id;
   const { role } = req.query;
-  
+
   console.log("userId", userId);
   if (!userId) {
     return res

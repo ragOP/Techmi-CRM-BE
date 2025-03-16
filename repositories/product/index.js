@@ -135,8 +135,16 @@ const deleteProduct = async (id) => {
   return await Product.findByIdAndDelete(id);
 };
 
-const getProductsByAdmin = async (id) => {
-  return await Product.find({ created_by_admin: id }).sort({ createdAt: -1 });
+const getProductsByAdmin = async ({ id, filters, page, per_page }) => {
+  const skip = (page - 1) * per_page;
+  const limit = parseInt(per_page);
+
+  return await Product.find({ ...filters, created_by_admin: id })
+    .sort({
+      createdAt: -1,
+    })
+    .skip(skip)
+    .limit(limit);
 };
 
 const bulkCreateProducts = async (productsData) => {

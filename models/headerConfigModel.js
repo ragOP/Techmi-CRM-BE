@@ -12,6 +12,14 @@ const HeaderConfigSchema = new mongoose.Schema(
     twitterLink: { type: String },
     instagramLink: { type: String },
     linkedInLink: { type: String },
+    locations: {
+      type: [
+        {
+          city: { type: String },
+          locations: { type: [String], default: [] },
+        },
+      ],
+    },
   },
   { timestamps: true }
 );

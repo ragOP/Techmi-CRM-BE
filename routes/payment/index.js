@@ -38,9 +38,8 @@ router.post("/create-session", async (req, res) => {
       {
         headers: {
           "Content-Type": "application/json",
-          "x-client-id": "TEST105574147e6653e20fe2f019fe5141475501",
-          "x-client-secret":
-            "cfsk_ma_test_525a51413de6c616b014bd5145c3275b_1f7de502",
+          "x-client-id": process.env.CASHFREE_CLIENT_ID,
+          "x-client-secret": process.env.CASHFREE_CLIENT_SECRET,
           "x-api-version": "2025-01-01",
         },
       }

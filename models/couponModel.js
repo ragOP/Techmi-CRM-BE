@@ -79,6 +79,11 @@ const couponSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    created_by_admin: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Admin",
+      required: true,
+    },
   },
   {
     timestamps: true,

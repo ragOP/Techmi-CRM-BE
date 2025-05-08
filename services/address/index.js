@@ -24,6 +24,13 @@ const deleteAddress = async (id) => {
   return await AddressRepository.deleteAddress(id);
 };
 
+const unsetPrimaryAddress = async (userId) => {
+  await Address.updateMany(
+    { user: userId, isPrimary: true },
+    { isPrimary: false }
+  );
+};
+
 module.exports = {
   getAllAddresses,
   getAddressById,
@@ -31,4 +38,5 @@ module.exports = {
   createAddress,
   updateAddress,
   deleteAddress,
+  unsetPrimaryAddress,
 };

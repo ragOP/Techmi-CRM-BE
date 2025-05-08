@@ -38,5 +38,6 @@ module.exports = {
   superAdmin: authenticateRole(["super_admin"]),
   admin: authenticateRole(["admin"]),
   subAdmin: authenticateRole(["sub_admin"]),
-  adminOrSubAdmin: authenticateRole(["admin", "sub_admin"])
+  adminOrSubAdmin: authenticateRole(["admin", "sub_admin"]),
+  adminOrSuperAdmin: authenticateRole(["admin", "super_admin"]),
 };

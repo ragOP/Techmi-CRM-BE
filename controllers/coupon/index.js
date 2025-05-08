@@ -16,7 +16,17 @@ const deleteCoupon = asyncHandler(async (req, res) => {
 
 // Create new coupon
 const createCoupon = asyncHandler(async (req, res) => {
-  const coupon = new Coupon(req.body);
+  const adminId = req.admin._id;
+
+  if (!adminId) {
+    return res.json(new ApiResponse(404, null, "Admin not found", false));
+  }
+
+  const updatedBody = {
+    ...req.body,
+    created_by_admin: adminId,
+  };
+  const coupon = new Coupon(updatedBody);
   await coupon.save();
   res.status(201).json(coupon);
 });

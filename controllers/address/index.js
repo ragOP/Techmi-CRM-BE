@@ -68,6 +68,16 @@ const createAddress = asyncHandler(async (req, res) => {
     );
   }
 
+  const existingAddresses = await AddressServices.getAddressesByUserId(
+    addressData.user
+  );
+
+  if (existingAddresses.length === 0) {
+    addressData.isPrimary = true;
+  } else if (addressData.isPrimary) {
+    await AddressServices.unsetPrimaryAddress(addressData.user);
+  }
+
   const address = await AddressServices.createAddress(addressData);
   res.json(new ApiResponse(200, address, "Address created successfully", true));
 });
@@ -80,7 +90,12 @@ const updateAddress = asyncHandler(async (req, res) => {
     return res.json(new ApiResponse(400, null, "Invalid address ID", false));
   }
 
+  if (addressData.isPrimary) {
+    await AddressServices.unsetPrimaryAddress(addressData.user);
+  }
+
   const address = await AddressServices.updateAddress(id, addressData);
+
   if (!address) {
     return res.json(new ApiResponse(404, null, "Address not found", false));
   }
@@ -98,6 +113,17 @@ const deleteAddress = asyncHandler(async (req, res) => {
   const address = await AddressServices.deleteAddress(id);
   if (!address) {
     return res.json(new ApiResponse(404, null, "Address not found", false));
+  }
+
+  if (address.isPrimary) {
+    const remainingAddresses = await AddressServices.getAddressesByUserId(
+      address.user
+    );
+    if (remainingAddresses.length > 0) {
+      await AddressServices.updateAddress(remainingAddresses[0]._id, {
+        isPrimary: true,
+      });
+    }
   }
 
   res.json(new ApiResponse(200, null, "Address deleted successfully", true));

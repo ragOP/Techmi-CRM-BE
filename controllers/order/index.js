@@ -103,6 +103,12 @@ const getAllOrders = asyncHandler(async (req, res) => {
   }
 });
 
+const validateId = (id, name) => {
+  if (id && !mongoose.Types.ObjectId.isValid(id)) {
+    throw new Error(`Invalid ${name} ID`);
+  }
+};
+
 const createOrder = asyncHandler(async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -110,20 +116,24 @@ const createOrder = asyncHandler(async (req, res) => {
   try {
     const role = req.user.role;
 
-    const { cartId, addressId, couponId } = req.body;
+    const { cartId, addressId, couponId, orderId, orderedBy, orderedForUser } =
+      req.body;
     const userId = req.user._id;
 
     // Validate input IDs
-    const validateId = (id, name) => {
-      if (id && !mongoose.Types.ObjectId.isValid(id)) {
-        throw new Error(`Invalid ${name} ID`);
-      }
-    };
 
     validateId(cartId, "cart");
     validateId(addressId, "address");
     validateId(couponId, "coupon");
     validateId(userId, "userId");
+
+    if(orderedBy) {
+      validateId(orderedBy, "orderedBy");
+    }
+
+    if(orderedForUser) {
+      validateId(orderedForUser, "orderedForUser");
+    }
 
     // Fetch and validate coupon
     let coupon = null;
@@ -148,10 +158,21 @@ const createOrder = asyncHandler(async (req, res) => {
     if (cart.items.length === 0) throw new Error("Cart is empty");
 
     // Validate address
-    const address = await Address.findOne({
-      _id: addressId,
-      user: userId,
-    }).session(session);
+
+    let address;
+
+    if (orderedBy) {
+      address = await Address.findOne({
+        _id: addressId,
+        user: userId,
+      }).session(session);
+    } else {
+      address = await Address.findOne({
+        _id: addressId,
+        user: userId,
+      }).session(session);
+    }
+
     if (!address) throw new Error("Address not found");
 
     // Process cart items
@@ -252,6 +273,9 @@ const createOrder = asyncHandler(async (req, res) => {
       coupon: couponDetails,
       originalAmount: totalAmount,
       discountAmount,
+      cashfree_order: {
+        id: orderId,
+      },
     });
 
     // Save order and clear cart

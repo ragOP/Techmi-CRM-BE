@@ -24,6 +24,7 @@ const homeConfigRoutes = require("./routes/home_config/index.js");
 const sericeConfigRoutes = require("./routes/service_config/index.js");
 const headerConfigRoute = require("./routes/header_config/index.js");
 const internalPageConfigRoute = require("./routes/internal_config/index.js")
+const paymentRoute = require("./routes/payment/index.js")
 
 // Connect DB
 connectDB();
@@ -53,6 +54,7 @@ app.use("/api/home", homeConfigRoutes);
 app.use("/api/service-page", sericeConfigRoutes);
 app.use("/api/header", headerConfigRoute);
 app.use("/api/internal", internalPageConfigRoute);
+app.use("/api/payment", paymentRoute);
 
 // Documentation (Development)
 app.use("/api-doc", swaggerUI.serve, swaggerUI.setup(swaggerSpec));

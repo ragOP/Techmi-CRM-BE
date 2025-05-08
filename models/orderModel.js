@@ -1,41 +1,42 @@
 const mongoose = require("mongoose");
+const { type } = require("os");
 
 const OrderItemSchema = new mongoose.Schema({
   product: {
     type: new mongoose.Schema({
       _id: {
         type: mongoose.Schema.Types.ObjectId,
-        required: true
+        required: true,
       },
       name: {
         type: String,
-        required: true
+        required: true,
       },
       price: {
         type: mongoose.Schema.Types.Decimal128,
-        required: true
+        required: true,
       },
       discounted_price: {
         type: mongoose.Schema.Types.Decimal128,
-        default: null
+        default: null,
       },
       salesperson_discounted_price: {
         type: mongoose.Schema.Types.Decimal128,
-        default: null
+        default: null,
       },
       dnd_discounted_price: {
         type: mongoose.Schema.Types.Decimal128,
-        default: null
+        default: null,
       },
-      banner_image: String
+      banner_image: String,
     }),
-    required: true
+    required: true,
   },
   quantity: {
     type: Number,
     required: true,
-    min: 1
-  }
+    min: 1,
+  },
 });
 
 const OrderAddressSchema = new mongoose.Schema({
@@ -48,27 +49,41 @@ const OrderAddressSchema = new mongoose.Schema({
   state: String,
   landmark: String,
   alternatePhone: String,
-  addressType: String
+  addressType: String,
 });
 
-const OrderSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true
+const OrderSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    items: [OrderItemSchema],
+    address: OrderAddressSchema,
+    totalAmount: {
+      type: mongoose.Schema.Types.Decimal128,
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
+      default: "pending",
+    },
+    cashfree_order: {
+      id: {
+        type: String,
+        required: true,
+      },
+    },
+    ordered_by: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: false,
+    },
   },
-  items: [OrderItemSchema],
-  address: OrderAddressSchema,
-  totalAmount: {
-    type: mongoose.Schema.Types.Decimal128,
-    required: true
-  },
-  status: {
-    type: String,
-    enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
-    default: "pending"
-  }
-}, { timestamps: true });
+  { timestamps: true }
+);
 
 OrderSchema.set("toJSON", {
   transform: (doc, ret) => {
@@ -77,7 +92,7 @@ OrderSchema.set("toJSON", {
 
     // Ensure ret.items is an array before mapping
     if (Array.isArray(ret.items)) {
-      ret.items = ret.items.map(item => ({
+      ret.items = ret.items.map((item) => ({
         ...item,
         product: {
           ...item.product,
@@ -85,18 +100,19 @@ OrderSchema.set("toJSON", {
           discounted_price: item.product.discounted_price
             ? parseFloat(item.product.discounted_price.toString())
             : null,
-          salesperson_discounted_price: item.product.salesperson_discounted_price
+          salesperson_discounted_price: item.product
+            .salesperson_discounted_price
             ? parseFloat(item.product.salesperson_discounted_price.toString())
             : null,
           dnd_discounted_price: item.product.dnd_discounted_price
             ? parseFloat(item.product.dnd_discounted_price.toString())
-            : null
-        }
+            : null,
+        },
       }));
     }
 
     return ret;
-  }
+  },
 });
 
 module.exports = mongoose.model("Order", OrderSchema);

@@ -9,9 +9,10 @@ const {
 
 router.post("/", adminOrSuperAdmin, couponController.createCoupon);
 router.get("/:code/validate", admin, couponController.validateCoupon);
-router.get("/:code", admin, couponController.getCouponByCode);
+router.get("/:id", adminOrSuperAdmin, couponController.getCouponByCode);
 router.post("/:code/apply", admin, couponController.applyCoupon);
 router.get("/", couponController.getAllCoupons);
-router.delete("/:code", admin, couponController.deleteCoupon);
+router.delete("/:id", adminOrSuperAdmin, couponController.deleteCoupon);
+router.put("/:id", adminOrSuperAdmin, couponController.updateCoupon);
 
 module.exports = router;

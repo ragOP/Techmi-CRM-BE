@@ -1,17 +1,52 @@
 const { asyncHandler } = require("../../common/asyncHandler");
 const Coupon = require("../../models/couponModel");
+const ApiResponse = require("../../utils/ApiResponse");
 
 const getAllCoupons = asyncHandler(async (req, res) => {
-  const coupons = await Coupon.find();
-  res.json(coupons);
+  const {
+    page = 1,
+    per_page = 50,
+    search = "",
+    showOnlyValid = false,
+  } = req.query;
+
+  const now = new Date();
+
+  const query = {
+    ...(search && { code: { $regex: search, $options: "i" } }),
+    ...(showOnlyValid === "true" && {
+      startDate: { $lte: now },
+      endDate: { $gt: now },
+    }),
+  };
+
+  const totalCoupons = await Coupon.countDocuments(query);
+  const coupons = await Coupon.find(query)
+    .skip((page - 1) * per_page)
+    .limit(parseInt(per_page, 10))
+    .sort({ createdAt: -1 });
+
+  res.json(
+    new ApiResponse(
+      200,
+      { data: coupons, total: totalCoupons },
+      "Coupons fetched successfully",
+      true
+    )
+  );
 });
 
 // Delete coupon
 const deleteCoupon = asyncHandler(async (req, res) => {
-  const coupon = await Coupon.findOneAndDelete({ code: req.params.code });
-  if (!coupon) return res.status(404).json({ error: "Coupon not found" });
-  res.json({ message: "Coupon deleted successfully" });
-  res.status(500).json({ error: error.message });
+  const coupon = await Coupon.findOneAndDelete({ _id: req.params.id });
+
+  if (!coupon) {
+    return res
+      .status(404)
+      .json(new ApiResponse(404, null, "Coupon not found", false));
+  }
+
+  res.json(new ApiResponse(200, null, "Coupon deleted successfully", true));
 });
 
 // Create new coupon
@@ -22,13 +57,40 @@ const createCoupon = asyncHandler(async (req, res) => {
     return res.json(new ApiResponse(404, null, "Admin not found", false));
   }
 
+  if (!req.body.code) {
+    return res.status(400).json({ error: "Coupon code is required" });
+  }
+  if (!req.body.discountValue) {
+    return res.status(400).json({ error: "Discount value is required" });
+  }
+  if (!req.body.discountType) {
+    return res.status(400).json({ error: "Discount type is required" });
+  }
+  if (!req.body.startDate) {
+    return res.status(400).json({ error: "Start date is required" });
+  }
+  if (!req.body.endDate) {
+    return res.status(400).json({ error: "End date is required" });
+  }
+
+  if (req.body.code) {
+    const existingCoupon = await Coupon.findOne({ code: req.body.code });
+    if (existingCoupon) {
+      return res
+        .status(400)
+        .json(new ApiResponse(400, null, "Coupon code already exists", false));
+    }
+  }
+
   const updatedBody = {
     ...req.body,
     created_by_admin: adminId,
   };
   const coupon = new Coupon(updatedBody);
   await coupon.save();
-  res.status(201).json(coupon);
+  res
+    .status(201)
+    .json(new ApiResponse(201, coupon, "Coupon created successfully", true));
 });
 
 // Validate coupon
@@ -71,9 +133,23 @@ const applyCoupon = asyncHandler(async (req, res) => {
 
 // Get coupon by code
 const getCouponByCode = asyncHandler(async (req, res) => {
-  const coupon = await Coupon.findOne({ code: req.params.code });
+  const coupon = await Coupon.findOne({ _id: req.params.id });
   if (!coupon) return res.status(404).json({ error: "Coupon not found" });
-  res.json(coupon);
+  res.json(new ApiResponse(200, coupon, "Coupon fetched successfully", true));
+});
+
+const updateCoupon = asyncHandler(async (req, res) => {
+  const coupon = await Coupon.findOneAndUpdate(
+    { _id: req.params.id },
+    { ...req.body },
+    { new: true }
+  );
+  if (!coupon) {
+    return res
+      .status(404)
+      .json(new ApiResponse(404, null, "Coupon not found", false));
+  }
+  res.json(new ApiResponse(200, coupon, "Coupon updated successfully", true));
 });
 
 // Helper functions
@@ -143,4 +219,5 @@ module.exports = {
   getAllCoupons,
   deleteCoupon,
   getCouponByCode,
+  updateCoupon,
 };

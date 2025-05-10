@@ -33,7 +33,6 @@ const getAllOrders = asyncHandler(async (req, res) => {
       const categoryIds = await Category.find({
         service: serviceObjectId,
       }).distinct("_id");
-      console.log("Category IDs:", categoryIds);
 
       if (categoryIds.length === 0) {
         return res
@@ -120,6 +119,7 @@ const createOrder = asyncHandler(async (req, res) => {
       req.body;
     const userId = req.user._id;
 
+    const currentUserId = orderedBy ? orderedForUser : userId;
     // Validate input IDs
 
     validateId(cartId, "cart");
@@ -127,11 +127,11 @@ const createOrder = asyncHandler(async (req, res) => {
     validateId(couponId, "coupon");
     validateId(userId, "userId");
 
-    if(orderedBy) {
+    if (orderedBy) {
       validateId(orderedBy, "orderedBy");
     }
 
-    if(orderedForUser) {
+    if (orderedForUser) {
       validateId(orderedForUser, "orderedForUser");
     }
 
@@ -158,14 +158,17 @@ const createOrder = asyncHandler(async (req, res) => {
     if (cart.items.length === 0) throw new Error("Cart is empty");
 
     // Validate address
-
     let address;
 
     if (orderedBy) {
       address = await Address.findOne({
-        _id: addressId,
-        user: userId,
+        user: orderedForUser,
+        isPrimary: true,
       }).session(session);
+
+      if (!address) {
+        throw new Error("No primary address found for the ordered user");
+      }
     } else {
       address = await Address.findOne({
         _id: addressId,
@@ -177,6 +180,7 @@ const createOrder = asyncHandler(async (req, res) => {
 
     // Process cart items
     let totalAmount = 0;
+    let discountedPrice = 0;
     const orderItems = [];
 
     for (const cartItem of cart.items) {
@@ -190,11 +194,15 @@ const createOrder = asyncHandler(async (req, res) => {
         currentPrice =
           product.salesperson_discounted_price !== null
             ? product.salesperson_discounted_price
+            : product.discounted_price !== null
+            ? product.discounted_price
             : product.price;
       } else if (role === "dnd") {
         currentPrice =
           product.dnd_discounted_price !== null
             ? product.dnd_discounted_price
+            : product.discounted_price !== null
+            ? product.discounted_price
             : product.price;
       } else {
         currentPrice =
@@ -203,8 +211,12 @@ const createOrder = asyncHandler(async (req, res) => {
             : product.price;
       }
 
+      const withoutDiscountPrice =
+        parseFloat(product.price.toString()) * cartItem.quantity;
+      totalAmount += withoutDiscountPrice;
+
       const itemTotal = parseFloat(currentPrice.toString()) * cartItem.quantity;
-      totalAmount += itemTotal;
+      discountedPrice += itemTotal;
 
       orderItems.push({
         product: {
@@ -212,6 +224,8 @@ const createOrder = asyncHandler(async (req, res) => {
           name: product.name,
           price: product.price,
           discounted_price: product.discounted_price,
+          salesperson_discounted_price: product.salesperson_discounted_price,
+          dnd_discounted_price: product.dnd_discounted_price,
           banner_image: product.banner_image,
         },
         quantity: cartItem.quantity,
@@ -220,7 +234,7 @@ const createOrder = asyncHandler(async (req, res) => {
     }
 
     // Apply coupon discount
-    let discountAmount = 0;
+    let couponDiscountAmount = 0;
     let couponDetails = null;
 
     if (coupon) {
@@ -230,12 +244,15 @@ const createOrder = asyncHandler(async (req, res) => {
 
       // Calculate discount
       if (coupon.discountType === "percentage") {
-        discountAmount = totalAmount * (coupon.discountValue / 100);
+        couponDiscountAmount = discountedPrice * (coupon.discountValue / 100);
         if (coupon.maxDiscount) {
-          discountAmount = Math.min(discountAmount, coupon.maxDiscount);
+          couponDiscountAmount = Math.min(
+            couponDiscountAmount,
+            coupon.maxDiscount
+          );
         }
       } else {
-        discountAmount = Math.min(coupon.discountValue, totalAmount);
+        couponDiscountAmount = Math.min(coupon.discountValue, discountedPrice);
       }
 
       // Update coupon usage
@@ -252,7 +269,7 @@ const createOrder = asyncHandler(async (req, res) => {
         code: coupon.code,
         discountType: coupon.discountType,
         discountValue: coupon.discountValue,
-        discountAmount,
+        discountAmount: couponDiscountAmount,
       };
     }
 
@@ -266,37 +283,26 @@ const createOrder = asyncHandler(async (req, res) => {
 
     // Create order
     const order = new Order({
-      user: userId,
+      user: orderedForUser ? orderedForUser : userId,
       items: orderItems,
       address: addressSnapshot,
-      totalAmount: totalAmount - discountAmount,
+      totalAmount: totalAmount,
+      discountedPrice: discountedPrice,
+      discountedPriceAfterCoupon: discountedPrice - couponDiscountAmount,
       coupon: couponDetails,
-      originalAmount: totalAmount,
-      discountAmount,
+      orderedBy: userId,
+      couponId: couponId,
       cashfree_order: {
         id: orderId,
       },
+      // originalAmount: totalAmount,
+      // discountAmount,
     });
 
     // Save order and clear cart
     await order.save({ session });
     cart.items = [];
     await cart.save({ session });
-
-    // // Save coupon usage if applied
-    // if (coupon) {
-    //   await CouponUsage.create(
-    //     [
-    //       {
-    //         user: userId,
-    //         coupon: coupon._id,
-    //         order: order._id,
-    //         discountAmount,
-    //       },
-    //     ],
-    //     { session }
-    //   );
-    // }
 
     await session.commitTransaction();
 
@@ -315,9 +321,19 @@ const createOrder = asyncHandler(async (req, res) => {
 
 const getOrderHistory = asyncHandler(async (req, res) => {
   try {
-    const orders = await Order.find({ user: req.user._id }).sort({
+    console.log(req.user._id);
+    if (!req.user._id) {
+      return res
+        .status(401)
+        .json(new ApiResponse(401, null, "Unauthorized", false));
+    }
+
+    let orders = await Order.find({ user: req.user._id }).sort({
       createdAt: -1,
     });
+
+
+    orders = orders.filter((order) => order && typeof order === "object");
 
     return res
       .status(200)

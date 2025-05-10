@@ -2,6 +2,7 @@ const Cart = require("../../models/cartModel.js");
 const CartRepository = require("../../repositories/cart/index.js");
 const ProductRepository = require("../../repositories/product/index.js");
 const ApiResponse = require("../../utils/ApiResponse.js");
+const { getProductPrice } = require("../../utils/products/getProductPrice.js");
 
 const getCart = async ({ user_id }) => {
   return await CartRepository.getCartByUserId({ user_id });
@@ -19,27 +20,42 @@ const updateCart = async (user_id, product_id, quantity, role) => {
     throw new ApiResponse(404, null, "Product not found", false);
   }
 
-  let productPrice;
+  let productPrice = getProductPrice({
+    price: productData.price,
+    discountedPrice: productData.discounted_price,
+    salespersonDiscountedPrice: productData.salesperson_discounted_price,
+    dndDiscountedPrice: productData.dnd_discounted_price,
+    role,
+  });
+
   // const productPrice = parseFloat(
   //   productData.discounted_price || productData.price
   // );
 
-  if (role === "salesperson") {
-    productPrice =
-      productData.salesperson_discounted_price !== null
-        ? productData.salesperson_discounted_price
-        : productData.price;
-  } else if (role === "dnd") {
-    productPrice =
-      productData.dnd_discounted_price !== null
-        ? productData.dnd_discounted_price
-        : productData.price;
-  } else {
-    productPrice =
-      productData.discounted_price !== null
-        ? productData.discounted_price
-        : productData.price;
-  }
+  // if (role === "salesperson") {
+  //   productPrice =
+  //     productData.salesperson_discounted_price !== null ||
+  //     productData.salesperson_discounted_price === 0
+  //       ? productData.salesperson_discounted_price
+  //       : product.discounted_price !== null || product.discounted_price === 0
+  //       ? productData.discounted_price
+  //       : productData.price;
+  // } else if (role === "dnd") {
+  //   productPrice =
+  //     productData.dnd_discounted_price !== null ||
+  //     productData.dnd_discounted_price === 0
+  //       ? productData.dnd_discounted_price
+  //       : productData.discounted_price !== null ||
+  //         product.discounted_price === 0
+  //       ? productData.discounted_price
+  //       : productData.price;
+  // } else {
+  //   productPrice =
+  //     productData.discounted_price !== null ||
+  //     productData.discounted_price === 0
+  //       ? productData.discounted_price
+  //       : productData.price;
+  // }
 
   if (!cart) {
     if (quantity > 0) {
@@ -68,6 +84,7 @@ const updateCart = async (user_id, product_id, quantity, role) => {
   if (existingItemIndex !== -1) {
     if (quantity > 0) {
       cart.items[existingItemIndex].quantity = quantity;
+      cart.items[existingItemIndex].price = productPrice;
       cart.items[existingItemIndex].total = productPrice * quantity;
     } else {
       cart.items.splice(existingItemIndex, 1);

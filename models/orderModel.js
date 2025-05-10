@@ -65,6 +65,14 @@ const OrderSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Decimal128,
       required: true,
     },
+    discountedPrice: {
+      type: mongoose.Schema.Types.Decimal128,
+      required: true,
+    },
+    discountedPriceAfterCoupon: {
+      type: mongoose.Schema.Types.Decimal128,
+      required: true,
+    },
     status: {
       type: String,
       enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
@@ -76,7 +84,12 @@ const OrderSchema = new mongoose.Schema(
         required: true,
       },
     },
-    ordered_by: {
+    couponId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Coupon",
+      required: false,
+    },
+    orderedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: false,
@@ -88,7 +101,17 @@ const OrderSchema = new mongoose.Schema(
 OrderSchema.set("toJSON", {
   transform: (doc, ret) => {
     // Convert totalAmount to number
-    ret.totalAmount = parseFloat(ret.totalAmount.toString());
+    ret.totalAmount = ret.totalAmount
+      ? parseFloat(ret.totalAmount.toString())
+      : 0;
+
+    ret.discountedPrice = ret.discountedPrice
+      ? parseFloat(ret.discountedPrice.toString())
+      : 0;
+
+    ret.discountedPriceAfterCoupon = ret.discountedPriceAfterCoupon
+      ? parseFloat(ret.discountedPriceAfterCoupon.toString())
+      : 0;
 
     // Ensure ret.items is an array before mapping
     if (Array.isArray(ret.items)) {

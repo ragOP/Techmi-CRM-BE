@@ -145,7 +145,7 @@ const getUsersByRole = asyncHandler(async (req, res) => {
       .json(new ApiResponse(404, null, "User not found", false));
   }
 
-  const validRoles = ["salesperson", "dnd"];
+  const validRoles = ["salesperson", "dnd", "user"];
   if (!validRoles.includes(role)) {
     return res
       .status(400)
@@ -153,6 +153,7 @@ const getUsersByRole = asyncHandler(async (req, res) => {
   }
 
   const users = await User.find({ role }).select("-password");
+
   res.json(
     new ApiResponse(
       200,

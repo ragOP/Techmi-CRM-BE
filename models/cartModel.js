@@ -20,11 +20,11 @@ const CartSchema = new mongoose.Schema(
           min: 1,
         },
         price: {
-          type: Number,
+          type: mongoose.Schema.Types.Decimal128,
           required: true,
         },
         total: {
-          type: Number,
+          type: mongoose.Schema.Types.Decimal128,
           required: true,
         },
         addedAt: {
@@ -38,9 +38,8 @@ const CartSchema = new mongoose.Schema(
       },
     ],
     total_price: {
-      type: Number,
+      type: mongoose.Schema.Types.Decimal128,
       required: true,
-      default: 0,
     },
     is_active: {
       type: Boolean,
@@ -53,13 +52,42 @@ const CartSchema = new mongoose.Schema(
 // ✅ Auto-calculate total for each item before saving
 CartSchema.pre("save", function (next) {
   this.items.forEach((item) => {
-    item.total = item.quantity * item.price;
+    const quantity = parseFloat(item.quantity) || 0;
+    const price = parseFloat(item.price.toString()) || 0; // Convert Decimal128 to string, then parseFloat
+
+    item.total = mongoose.Types.Decimal128.fromString(
+      (quantity * price).toString()
+    ); // Convert back to Decimal128
   });
 
   // ✅ Calculate total_price for the cart
-  this.total_price = this.items.reduce((sum, item) => sum + item.total, 0);
+  const totalPrice = this.items.reduce((sum, item) => {
+    const itemTotal = parseFloat(item.total.toString()) || 0; // Convert Decimal128 to string, then parseFloat
+    return sum + itemTotal;
+  }, 0);
+
+  this.total_price = mongoose.Types.Decimal128.fromString(
+    totalPrice.toString()
+  ); // Convert back to Decimal128
 
   next();
+});
+
+// ✅ Transform Decimal128 fields to numbers in JSON responses
+CartSchema.set("toJSON", {
+  transform: (doc, ret) => {
+    // Convert total_price from Decimal128 to a number
+    ret.total_price = parseFloat(ret.total_price.toString());
+
+    // Ensure items' total and price are also numbers
+    ret.items = ret.items.map((item) => ({
+      ...item,
+      price: parseFloat(item.price.toString()),
+      total: parseFloat(item.total.toString()),
+    }));
+
+    return ret;
+  },
 });
 
 const Cart = mongoose.model("Cart", CartSchema);

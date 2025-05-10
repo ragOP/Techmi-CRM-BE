@@ -13,13 +13,20 @@ router.post("/create-session", async (req, res) => {
       customerId,
       customerEmail,
       customerPhone,
+      orderedForUser,
     } = req.body;
 
     const orderId = "order_" + Date.now();
+
     let returnUrl = `http://localhost:3000/cart?orderId=${orderId}&addressId=${addressId}&cartId=${cartId}`;
     if (couponId) {
       returnUrl += `&couponId=${couponId}`;
     }
+
+    if (orderedForUser) {
+      returnUrl += `&orderedForUser=${orderedForUser}`;
+    }
+    
     const response = await axios.post(
       "https://sandbox.cashfree.com/pg/orders",
       {
@@ -39,7 +46,7 @@ router.post("/create-session", async (req, res) => {
         headers: {
           "Content-Type": "application/json",
           "x-client-id": process.env.CASHFREE_CLIENT_ID,
-          "x-client-secret": process.env.CASHFREE_CLIENT_SECRET,
+          "x-client-secret": process.env.CASHFREE_SECRET_KEY,
           "x-api-version": "2025-01-01",
         },
       }
@@ -62,7 +69,7 @@ router.get("/details/:id", async (req, res) => {
       {
         headers: {
           "x-client-id": process.env.CASHFREE_CLIENT_ID,
-          "x-client-secret": process.env.CASHFREE_CLIENT_SECRET,
+          "x-client-secret": process.env.CASHFREE_SECRET_KEY,
           Accept: "application/json",
           "x-api-version": "2025-01-01",
         },

@@ -1,6 +1,7 @@
 const Category = require("../../models/categoryModel");
 const Product = require("../../models/productsModel");
 const mongoose = require("mongoose");
+const Order = require("../../models/orderModel");
 
 const getAllProducts = async ({
   page,
@@ -117,14 +118,15 @@ const getAllProducts = async ({
 
     const result = await Order.aggregate([
       { $match: { createdAt: { $gte: sevenDaysAgo } } },
-      { $unwind: "$products" },
+      { $unwind: "$items" },
       {
         $group: {
-          _id: "$products.productId",
-          totalSold: { $sum: "$products.quantity" },
+          _id: "$items.product._id",
+          totalSold: { $sum: "$items.quantity" },
         },
       },
-      { $match: { totalSold: { $gte: 50 } } },
+      { $sort: { totalSold: -1 } },
+      { $limit: 50 },
       { $project: { _id: 1 } },
     ]);
 
@@ -141,11 +143,11 @@ const getAllProducts = async ({
   let mostOrderedProductIds = [];
   if (is_most_ordered) {
     const result = await Order.aggregate([
-      { $unwind: "$products" },
+      { $unwind: "$items" },
       {
         $group: {
-          _id: "$products.productId",
-          totalSold: { $sum: "$products.quantity" },
+          _id: "$items.product._id",
+          totalSold: { $sum: "$items.quantity" },
         },
       },
       { $sort: { totalSold: -1 } },

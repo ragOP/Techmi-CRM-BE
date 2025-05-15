@@ -9,9 +9,13 @@ const getAllProducts = async ({
   service_id,
   category_id,
   is_best_seller,
+  is_super_selling,
+  is_most_ordered,
   search,
   price_range,
   sort_by,
+  start_date,
+  end_date,
 }) => {
   return await ProductsRepository.getAllProducts({
     page,
@@ -19,9 +23,13 @@ const getAllProducts = async ({
     category_id,
     service_id,
     is_best_seller,
+    is_super_selling,
+    is_most_ordered,
     search,
     price_range,
     sort_by,
+    start_date,
+    end_date
   });
 };
 
@@ -41,10 +49,24 @@ const deleteProduct = async (id) => {
   return await ProductsRepository.deleteProduct(id);
 };
 
-const getProductsByAdmin = async ({ id, page, per_page, search }) => {
+const getProductsByAdmin = async ({
+  id,
+  page,
+  per_page,
+  search,
+  start_date,
+  end_date,
+}) => {
   const filters = {
     ...(search && { name: { $regex: search, $options: "i" } }),
+    ...((start_date || end_date) && {
+      createdAt: {
+        ...(start_date && { $gte: new Date(start_date) }),
+        ...(end_date && { $lte: new Date(end_date) }),
+      },
+    }),
   };
+
   return await ProductsRepository.getProductsByAdmin({
     id,
     filters,

@@ -8,8 +8,8 @@ const swaggerSpec = require("./swagger.js");
 const swaggerUI = require("swagger-ui-express");
 
 // Routes Import
-const authAdminRoutes = require("./routes/auth/admin/index.js")
-const authUserRoutes = require("./routes/auth/user/index.js")
+const authAdminRoutes = require("./routes/auth/admin/index.js");
+const authUserRoutes = require("./routes/auth/user/index.js");
 const serviceRoutes = require("./routes/service/index.js");
 const categoryRoutes = require("./routes/category/index.js");
 const productRoutes = require("./routes/product/index.js");
@@ -23,8 +23,9 @@ const reviewRoute = require("./routes/reviews/index.js");
 const homeConfigRoutes = require("./routes/home_config/index.js");
 const sericeConfigRoutes = require("./routes/service_config/index.js");
 const headerConfigRoute = require("./routes/header_config/index.js");
-const internalPageConfigRoute = require("./routes/internal_config/index.js")
-const paymentRoute = require("./routes/payment/index.js")
+const internalPageConfigRoute = require("./routes/internal_config/index.js");
+const paymentRoute = require("./routes/payment/index.js");
+const dashboardRoute = require("./routes/dashboard/index.js");
 
 // Connect DB
 connectDB();
@@ -55,6 +56,7 @@ app.use("/api/service-page", sericeConfigRoutes);
 app.use("/api/header", headerConfigRoute);
 app.use("/api/internal", internalPageConfigRoute);
 app.use("/api/payment", paymentRoute);
+app.use("api/dashboard", dashboardRoute);
 
 // Documentation (Development)
 app.use("/api-doc", swaggerUI.serve, swaggerUI.setup(swaggerSpec));

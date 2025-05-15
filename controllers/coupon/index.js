@@ -1,6 +1,7 @@
 const { asyncHandler } = require("../../common/asyncHandler");
 const Coupon = require("../../models/couponModel");
 const ApiResponse = require("../../utils/ApiResponse");
+const mongoose = require("mongoose");
 
 const getAllCoupons = asyncHandler(async (req, res) => {
   const {
@@ -18,6 +19,37 @@ const getAllCoupons = asyncHandler(async (req, res) => {
       startDate: { $lte: now },
       endDate: { $gt: now },
     }),
+  };
+
+  const totalCoupons = await Coupon.countDocuments(query);
+  const coupons = await Coupon.find(query)
+    .skip((page - 1) * per_page)
+    .limit(parseInt(per_page, 10))
+    .sort({ createdAt: -1 });
+
+  res.json(
+    new ApiResponse(
+      200,
+      { data: coupons, total: totalCoupons },
+      "Coupons fetched successfully",
+      true
+    )
+  );
+});
+
+const getAdminCoupons = asyncHandler(async (req, res) => {
+  const adminId = req.admin._id;
+  const role = req.admin.role;
+
+  const { page = 1, per_page = 50, search = "" } = req.query;
+
+  if (!mongoose.Types.ObjectId.isValid(adminId)) {
+    return res.json(new ApiResponse(400, null, "Invalid admin ID", false));
+  }
+
+  const query = {
+    ...(search && { code: { $regex: search, $options: "i" } }),
+    ...(role !== "super_admin" && { created_by_admin: adminId }),
   };
 
   const totalCoupons = await Coupon.countDocuments(query);
@@ -220,4 +252,5 @@ module.exports = {
   deleteCoupon,
   getCouponByCode,
   updateCoupon,
+  getAdminCoupons,
 };

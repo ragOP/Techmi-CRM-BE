@@ -114,12 +114,13 @@ const deleteCategory = asyncHandler(async (req, res) => {
 });
 
 const getCategoriesByAdmin = asyncHandler(async (req, res) => {
-  const adminId = req.admin._id;
+  const { page = 1, per_page = 50, search = "", admin_id } = req.query;
+
+  const adminId = admin_id ? admin_id : req.admin._id;
+  
   if (!adminId) {
     return res.json(new ApiResponse(404, null, "Admin not found", false));
   }
-
-  const { page = 1, per_page = 50, search = "" } = req.query;
 
   const categories = await CategoryService.getCategoriesByAdmin({
     id: adminId,

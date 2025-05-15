@@ -2,14 +2,18 @@ const express = require("express");
 const ProductsController = require("../../controllers/products/index.js");
 const multer = require("multer");
 const { storage } = require("../../config/multer.js");
-const { admin, adminOrSubAdmin } = require("../../middleware/auth/adminMiddleware.js");
+const {
+  admin,
+  adminOrSubAdmin,
+  adminOrSuperAdmin,
+} = require("../../middleware/auth/adminMiddleware.js");
 const router = express.Router();
 
 const upload = multer({ storage: storage });
 
 router.post(
   "/",
-  admin,
+  adminOrSuperAdmin,
   upload.fields([
     { name: "banner_image", maxCount: 1 },
     { name: "images", maxCount: 10 },
@@ -18,7 +22,7 @@ router.post(
 );
 
 router.get("/admin", adminOrSubAdmin, ProductsController.getProductsByAdmin);
-router.post('/batch', admin, ProductsController.bulkCreateProducts);
+router.post("/batch", admin, ProductsController.bulkCreateProducts);
 
 router.get("/", ProductsController.getAllProducts);
 router.get("/:id", ProductsController.getProductById);

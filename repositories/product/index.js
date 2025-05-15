@@ -8,9 +8,13 @@ const getAllProducts = async ({
   service_id,
   category_id,
   is_best_seller,
+  is_super_selling,
+  is_most_ordered,
   search,
   price_range,
   sort_by,
+  start_date,
+  end_date,
 }) => {
   const skip = (page - 1) * per_page;
 
@@ -48,8 +52,6 @@ const getAllProducts = async ({
       ...serviceCategoryIds,
     ]),
   ];
-
-  console.log("finalCategoryIds", finalCategoryIds);
 
   if (finalCategoryIds.length > 0) {
     filter.category = { $in: finalCategoryIds };
@@ -97,6 +99,76 @@ const getAllProducts = async ({
     }
   }
 
+  if (start_date || end_date) {
+    filter.createdAt = {};
+    if (start_date) {
+      filter.createdAt.$gte = new Date(start_date);
+    }
+    if (end_date) {
+      filter.createdAt.$lte = new Date(end_date);
+    }
+  }
+
+  // Super Selling Products
+  let superSellingProductIds = [];
+  if (is_super_selling) {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const result = await Order.aggregate([
+      { $match: { createdAt: { $gte: sevenDaysAgo } } },
+      { $unwind: "$products" },
+      {
+        $group: {
+          _id: "$products.productId",
+          totalSold: { $sum: "$products.quantity" },
+        },
+      },
+      { $match: { totalSold: { $gte: 50 } } },
+      { $project: { _id: 1 } },
+    ]);
+
+    superSellingProductIds = result.map((item) => item._id.toString());
+
+    if (superSellingProductIds.length === 0) {
+      return { data: [], total: 0 };
+    }
+
+    filter._id = { $in: superSellingProductIds };
+  }
+
+  // Most Ordered Products
+  let mostOrderedProductIds = [];
+  if (is_most_ordered) {
+    const result = await Order.aggregate([
+      { $unwind: "$products" },
+      {
+        $group: {
+          _id: "$products.productId",
+          totalSold: { $sum: "$products.quantity" },
+        },
+      },
+      { $sort: { totalSold: -1 } },
+      { $limit: 10 },
+      { $project: { _id: 1 } },
+    ]);
+
+    mostOrderedProductIds = result.map((item) => item._id.toString());
+
+    if (mostOrderedProductIds.length === 0) {
+      return { data: [], total: 0 };
+    }
+
+    if (filter._id) {
+      // intersect with existing _id filter
+      filter._id.$in = filter._id.$in.filter((id) =>
+        mostOrderedProductIds.includes(id.toString())
+      );
+    } else {
+      filter._id = { $in: mostOrderedProductIds };
+    }
+  }
+
   let sortOptions = {};
   if (sort_by === "asc") {
     sortOptions = { price: 1 };
@@ -139,12 +211,14 @@ const getProductsByAdmin = async ({ id, filters, page, per_page }) => {
   const skip = (page - 1) * per_page;
   const limit = parseInt(per_page);
 
-  return await Product.find({ ...filters, created_by_admin: id })
-    .sort({
-      createdAt: -1,
-    })
-    .skip(skip)
-    .limit(limit);
+  const query = { ...filters, created_by_admin: id };
+
+  const [products, total] = await Promise.all([
+    Product.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    Product.countDocuments(query),
+  ]);
+
+  return { products, total };
 };
 
 const bulkCreateProducts = async (productsData) => {

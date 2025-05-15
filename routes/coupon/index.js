@@ -5,9 +5,15 @@ const {
   admin,
   superAdmin,
   adminOrSuperAdmin,
+  adminOrSubAdminOrSuperAdmin,
 } = require("../../middleware/auth/adminMiddleware");
 
 router.post("/", adminOrSuperAdmin, couponController.createCoupon);
+router.get(
+  "/all/admin",
+  adminOrSubAdminOrSuperAdmin,
+  couponController.getAdminCoupons
+);
 router.get("/:code/validate", admin, couponController.validateCoupon);
 router.get("/:id", adminOrSuperAdmin, couponController.getCouponByCode);
 router.post("/:code/apply", admin, couponController.applyCoupon);

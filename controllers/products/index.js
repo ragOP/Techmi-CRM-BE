@@ -7,6 +7,7 @@ const {
   uploadSingleFile,
 } = require("../../utils/upload/index.js");
 const Product = require("../../models/productsModel.js");
+const { totalmem } = require("os");
 
 const getAllProducts = asyncHandler(async (req, res) => {
   const {
@@ -16,8 +17,12 @@ const getAllProducts = asyncHandler(async (req, res) => {
     service_id,
     category_id,
     is_best_seller,
+    is_super_selling,
+    is_most_ordered,
     search,
     sort_by = "created_at",
+    start_date,
+    end_date,
   } = req.query;
 
   const products = await ProductsServices.getAllProducts({
@@ -26,9 +31,13 @@ const getAllProducts = asyncHandler(async (req, res) => {
     service_id,
     category_id,
     is_best_seller,
+    is_super_selling,
+    is_most_ordered,
     search,
     price_range,
     sort_by,
+    start_date,
+    end_date,
   });
   res.json(
     new ApiResponse(200, products, "Products fetched successfully", true)
@@ -151,18 +160,23 @@ const getProductsByAdmin = asyncHandler(async (req, res) => {
     return res.json(new ApiResponse(404, null, "Admin not found", false));
   }
 
-  const { page = 1, per_page = 10, search } = req.query;
+  const { page = 1, per_page = 10, search, start_date, end_date } = req.query;
 
-  const products = await ProductsServices.getProductsByAdmin({
+  const { products, total } = await ProductsServices.getProductsByAdmin({
     id: adminId,
     page,
     per_page,
     search,
+    start_date,
+    end_date,
   });
 
-  res.json(
-    new ApiResponse(200, products, "Product fetched successfully", true)
-  );
+  const data = {
+    data: products,
+    total: total,
+  };
+
+  res.json(new ApiResponse(200, data, "Product fetched successfully", true));
 });
 
 const bulkCreateProducts = asyncHandler(async (req, res) => {

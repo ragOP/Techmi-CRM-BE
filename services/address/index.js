@@ -1,3 +1,4 @@
+const Address = require("../../models/addressModel.js");
 const AddressRepository = require("../../repositories/address/index.js");
 
 const getAllAddresses = async () => {

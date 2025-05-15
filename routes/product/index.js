@@ -28,7 +28,7 @@ router.get("/", ProductsController.getAllProducts);
 router.get("/:id", ProductsController.getProductById);
 router.put(
   "/:id",
-  admin,
+  adminOrSuperAdmin,
   upload.fields([
     { name: "banner_image", maxCount: 1 },
     { name: "images", maxCount: 10 },

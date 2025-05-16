@@ -7,16 +7,20 @@ const swaggerDefinition = {
     version: "1.0.0",
     description: "My API Description",
   },
+  components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "JWT",
+      },
+    },
+  },
 };
 
 const options = {
   swaggerDefinition,
-  apis: [
-    "./routes/auth/admin/index.js",
-    "./routes/category/index.js",
-    "./routes/service/index.js",
-  ],
-  //   apis: ["./routes/*.js"], // Path to the API routes in your Node.js application
+  apis: ["./routes/**/*.js"],
 };
 
 const swaggerSpec = swaggerJSDoc(options);

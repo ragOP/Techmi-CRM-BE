@@ -1,13 +1,13 @@
 const { asyncHandler } = require("../../common/asyncHandler");
+const DashboardService = require("../../services/dashboard");
 
-const getDashboardData = asyncHandler(async (req, res) => {
-  const { adminId } = req.params;
+const getDashboardOverview = asyncHandler(async (req, res) => {
+  const { start_date, end_date } = req.query;
 
-  const dashboardData = {
-    totalUsers: 1000,
-    totalOrders: 500,
-    totalRevenue: 20000,
-  };
+  const dashboardData = await DashboardService.getDashboardOverview({
+    start_date,
+    end_date,
+  });
 
   res.status(200).json({
     status: "success",
@@ -15,6 +15,23 @@ const getDashboardData = asyncHandler(async (req, res) => {
   });
 });
 
+const getSalesOverviewByMonth = async (req, res) => {
+  const year = req.query.year || new Date().getFullYear();
+  const data = await DashboardService.getSalesOverviewByMonth(year);
+  res.json({ status: "success", data });
+};
+
+const getSalesAndOrdersByDateRange = async (req, res) => {
+  const { start_date, end_date } = req.query;
+  const data = await DashboardService.getSalesAndOrdersByDateRange(
+    start_date,
+    end_date
+  );
+  res.json({ status: "success", data });
+};
+
 module.exports = {
-  getDashboardData,
+  getDashboardOverview,
+  getSalesOverviewByMonth,
+  getSalesAndOrdersByDateRange,
 };

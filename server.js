@@ -56,7 +56,7 @@ app.use("/api/service-page", sericeConfigRoutes);
 app.use("/api/header", headerConfigRoute);
 app.use("/api/internal", internalPageConfigRoute);
 app.use("/api/payment", paymentRoute);
-app.use("api/dashboard", dashboardRoute);
+app.use("/api/dashboard", dashboardRoute);
 
 // Documentation (Development)
 app.use("/api-doc", swaggerUI.serve, swaggerUI.setup(swaggerSpec));

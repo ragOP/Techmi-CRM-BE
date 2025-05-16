@@ -20,7 +20,7 @@ const postUserQuery = asyncHandler(async (req, res) => {
 
 const getUserQueries = asyncHandler(async (req, res) => {
   const userQueries = await ContactRepositories.getAllUserQueries();
-  if(userQueries.length === 0){
+  if (userQueries.length === 0) {
     throw new ApiResponse(500, null, "Error while fetching the form", false);
   }
   return res.json(
@@ -28,7 +28,20 @@ const getUserQueries = asyncHandler(async (req, res) => {
   );
 });
 
+const deleteUserQueries = asyncHandler(async (req, res) => {
+  const id = req.params.id;
+
+  if (!id) {
+    throw new ApiResponse(404, null, "Required Filled are missing", false);
+  }
+  const userMessage = await ContactRepositories.deleteUserQueries(id);
+  return res.json(
+    new ApiResponse(201, userMessage, "Form submitted successfully", true)
+  );
+});
+
 module.exports = {
   postUserQuery,
   getUserQueries,
+  deleteUserQueries,
 };

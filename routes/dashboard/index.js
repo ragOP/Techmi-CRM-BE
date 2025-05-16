@@ -6,6 +6,22 @@ const {
 
 const router = express.Router();
 
-router.get("/", adminOrSuperAdmin, DashboardController.getDashboardData);
+router.get(
+  "/overview",
+  adminOrSuperAdmin,
+  DashboardController.getDashboardOverview
+);
+
+router.get(
+  "/sales-overview",
+  adminOrSuperAdmin,
+  DashboardController.getSalesOverviewByMonth
+);
+
+router.get(
+  "/sales-and-orders",
+  adminOrSuperAdmin,
+  DashboardController.getSalesAndOrdersByDateRange
+);
 
 module.exports = router;

@@ -2,10 +2,15 @@ const Brand = require("../../models/brandModel");
 
 const getAllBrands = async () => Brand.find();
 
-const getAllBrandsWithCount = async () => {
+const getAllBrandsWithCount = async ({ search }) => {
+  const filter = {};
+  if (search) {
+    filter.name = { $regex: search, $options: "i" };
+  }
+
   const [brands, total] = await Promise.all([
-    Brand.find(),
-    Brand.countDocuments()
+    Brand.find(filter),
+    Brand.countDocuments(filter),
   ]);
   return { brands, total };
 };
@@ -25,5 +30,5 @@ module.exports = {
   createBrand,
   updateBrand,
   deleteBrand,
-  getAllBrandsWithCount
+  getAllBrandsWithCount,
 };

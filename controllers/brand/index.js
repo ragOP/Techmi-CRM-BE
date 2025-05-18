@@ -4,7 +4,10 @@ const BrandService = require("../../services/brand/index.js");
 const { asyncHandler } = require("../../common/asyncHandler.js");
 
 const getAllBrands = asyncHandler(async (req, res) => {
-  const { brands, total } = await BrandService.getAllBrandsWithCount();
+  const { search } = req.query;
+  const { brands, total } = await BrandService.getAllBrandsWithCount({
+    search,
+  });
   res.json(
     new ApiResponse(
       200,

@@ -4,8 +4,10 @@ const MedicineTypeService = require("../../services/medicine_type");
 const { asyncHandler } = require("../../common/asyncHandler.js");
 
 const getAllMedicineTypes = asyncHandler(async (req, res) => {
+  const { search } = req.query;
+
   const { types, total } =
-    await MedicineTypeService.getAllMedicineTypesWithCount();
+    await MedicineTypeService.getAllMedicineTypesWithCount({ search });
   res.json(
     new ApiResponse(
       200,

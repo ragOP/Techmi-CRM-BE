@@ -24,6 +24,7 @@ const getAllProducts = asyncHandler(async (req, res) => {
     start_date,
     end_date,
   } = req.query;
+  console.log("Admin ID >>>>>>>>>>>>>>>>>>>>>>>>>");
 
   const products = await ProductsServices.getAllProducts({
     page: parseInt(page, 10),
@@ -95,7 +96,12 @@ const createProduct = asyncHandler(async (req, res) => {
     meta_data,
   };
 
-  const product = await ProductsServices.createProduct(productData);
+  const createdByAdmin = req.body.created_by_admin;
+
+  const product = await ProductsServices.createProduct(
+    productData,
+    createdByAdmin
+  );
   res.json(new ApiResponse(201, product, "Product created successfully", true));
 });
 
@@ -138,7 +144,13 @@ const updateProduct = asyncHandler(async (req, res) => {
     meta_data,
   };
 
-  const updatedProduct = await ProductsServices.updateProduct(id, productData);
+  const createdByAdmin = req.body.created_by_admin;
+
+  const updatedProduct = await ProductsServices.updateProduct(
+    id,
+    productData,
+    createdByAdmin
+  );
 
   res.json(
     new ApiResponse(200, updatedProduct, "Product updated successfully", true)

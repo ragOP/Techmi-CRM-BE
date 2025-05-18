@@ -2,6 +2,7 @@ const { default: mongoose } = require("mongoose");
 const Category = require("../../models/categoryModel.js");
 const ProductsRepository = require("../../repositories/product/index.js");
 const Product = require("../../models/productsModel.js");
+const InventoryService = require("../inventory/index.js");
 
 const getAllProducts = async ({
   page,
@@ -29,7 +30,7 @@ const getAllProducts = async ({
     price_range,
     sort_by,
     start_date,
-    end_date
+    end_date,
   });
 };
 
@@ -37,16 +38,53 @@ const getProductById = async (id) => {
   return await ProductsRepository.getProductById(id);
 };
 
-const createProduct = async (data) => {
-  return await ProductsRepository.createProduct(data);
+const createProduct = async (data, adminId) => {
+  const { quantity, ...productData } = data;
+  const product = await ProductsRepository.createProduct(productData);
+
+  await InventoryService.createInventory({
+    product_id: product._id,
+    quantity: quantity || 0,
+    last_modified_by: adminId,
+    last_modified_reason: "Initial stock on product creation",
+    last_restocked_at: new Date(),
+    low_stock_threshold: 5,
+  });
+
+  return product;
 };
 
-const updateProduct = async (id, data) => {
-  return await ProductsRepository.updateProduct(id, data);
+const updateProduct = async (id, data, adminId) => {
+  const { quantity, ...productData } = data;
+
+  const product = await ProductsRepository.updateProduct(id, productData);
+
+  if (quantity !== undefined) {
+    const inventory = await InventoryService.getInventoryByProductId(id);
+
+    if (inventory) {
+      await InventoryService.updateInventory(inventory._id, {
+        quantity: quantity,
+        last_modified_by: adminId,
+        last_modified_reason: "Stock updated on product update",
+      });
+    } else {
+      await InventoryService.createInventory({
+        product_id: product._id,
+        quantity: quantity,
+        last_modified_by: adminId,
+        last_modified_reason: "Stock created on product update",
+        last_restocked_at: new Date(),
+        low_stock_threshold: 5,
+      });
+    }
+  }
+
+  return product;
 };
 
 const deleteProduct = async (id) => {
-  return await ProductsRepository.deleteProduct(id);
+  await ProductsRepository.deleteProduct(id);
 };
 
 const getProductsByAdmin = async ({

@@ -185,7 +185,6 @@ const updateUser = asyncHandler(async (req, res) => {
   if (typeof is_super_admin !== "undefined")
     user.is_super_admin = is_super_admin;
 
-  console.log(user, ">>>>>>>>> USER");
   await user.save();
 
   const updatedUser = await User.findById(id).populate("services");

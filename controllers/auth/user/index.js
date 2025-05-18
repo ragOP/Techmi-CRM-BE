@@ -21,13 +21,21 @@ const getAllUsers = asyncHandler(async (req, res) => {
 
   const skip = (page - 1) * per_page;
 
-  const users = await User.find(filters)
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(per_page)
-    .select("-password");
+  const [users, total] = await Promise.all([
+    User.find(filters)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(per_page))
+      .select("-password"),
+    User.countDocuments(filters),
+  ]);
 
-  res.json(new ApiResponse(200, users, "Users fetched successfully", true));
+  const data = {
+    data: users,
+    total: total,
+  };
+
+  res.json(new ApiResponse(200, data, "Users fetched successfully", true));
 });
 
 const registerUser = asyncHandler(async (req, res) => {
@@ -134,11 +142,9 @@ const getUserById = asyncHandler(async (req, res) => {
 });
 
 const getUsersByRole = asyncHandler(async (req, res) => {
-  console.log("1111");
   const userId = req.user._id;
   const { role } = req.query;
 
-  console.log("userId", userId);
   if (!userId) {
     return res
       .status(404)

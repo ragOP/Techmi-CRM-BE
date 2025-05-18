@@ -7,6 +7,7 @@ const Product = require("../../models/productsModel");
 const Order = require("../../models/orderModel");
 const Coupon = require("../../models/couponModel");
 const Category = require("../../models/categoryModel");
+const Services = require("../../models/servicesModel");
 
 const getAllOrders = asyncHandler(async (req, res) => {
   const adminId = req.admin._id;
@@ -16,7 +17,14 @@ const getAllOrders = asyncHandler(async (req, res) => {
       .json(new ApiResponse(401, null, "Unauthorized", false));
   }
 
-  const { service_id, page = 1, per_page = 50, search = "" } = req.query;
+  const {
+    service_id,
+    page = 1,
+    per_page = 50,
+    search = "",
+    start_date,
+    end_date,
+  } = req.query;
 
   try {
     let query = {};
@@ -64,9 +72,10 @@ const getAllOrders = asyncHandler(async (req, res) => {
           );
       }
 
-      query = { "items.product._id": { $in: productIds } };
+      query["items.product._id"] = { $in: productIds };
     }
 
+    // Search filter
     if (search.trim()) {
       const productIdsByName = await Product.find({
         name: { $regex: search, $options: "i" },
@@ -79,17 +88,27 @@ const getAllOrders = asyncHandler(async (req, res) => {
       ];
     }
 
-    const orders = await Order.find(query)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * per_page)
-      .limit(parseInt(per_page, 10));
+    // Date filter
+    if (start_date || end_date) {
+      query.createdAt = {};
+      if (start_date) query.createdAt.$gte = new Date(start_date);
+      if (end_date) query.createdAt.$lte = new Date(end_date);
+    }
+
+    const [orders, total] = await Promise.all([
+      Order.find(query)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * per_page)
+        .limit(parseInt(per_page, 10)),
+      Order.countDocuments(query),
+    ]);
 
     return res
       .status(200)
       .json(
         new ApiResponse(
           200,
-          { data: orders },
+          { data: orders, total },
           "Orders fetched successfully",
           true
         )
@@ -100,6 +119,185 @@ const getAllOrders = asyncHandler(async (req, res) => {
       .status(500)
       .json(new ApiResponse(500, null, "Server error", false));
   }
+});
+
+const getChange = (current, previous) => {
+  if (previous === 0) return current === 0 ? 0 : 100;
+  return ((current - previous) / previous) * 100;
+};
+
+const getOrderOverview = asyncHandler(async (req, res) => {
+  const { start_date, end_date, service_id, compare = "last_week" } = req.query;
+
+  let serviceCategoryIds = [];
+
+  if (service_id) {
+    const categories = await Category.find({ service: service_id }, "_id");
+    serviceCategoryIds = categories.map((cat) => cat._id.toString());
+
+    if (serviceCategoryIds.length === 0) {
+      return res
+        .status(404)
+        .json(
+          new ApiResponse(
+            404,
+            null,
+            "No categories found for this service",
+            false
+          )
+        );
+    }
+  }
+
+  console.log("serviceCategoryIds", serviceCategoryIds);
+
+  const orderFilter = {};
+
+  if (start_date && end_date) {
+    orderFilter.createdAt = {
+      $gte: new Date(start_date),
+      $lte: new Date(end_date),
+    };
+  }
+
+  const orders = await Order.find(orderFilter).populate({
+    path: "items.product",
+    populate: {
+      path: "category",
+      select: "_id",
+    },
+  });
+
+  // Step 3: Compute current stats
+  let currentStats = {
+    totalRevenue: 0,
+    totalOrders: 0,
+    totalDelivered: 0,
+  };
+
+  for (const order of orders) {
+    let includeOrder = false;
+
+    for (const item of order.items) {
+      const product = item.product;
+
+      if (!product || !product.category) continue;
+
+      const matchesCategory = serviceCategoryIds.includes(product.category?.[0]?._id?.toString?.());
+      if (matchesCategory) {
+        includeOrder = true;
+        break;
+      }
+    }
+
+    if (!includeOrder) continue;
+
+    currentStats.totalRevenue += parseFloat(order.totalAmount || 0);
+    currentStats.totalOrders += 1;
+
+    if (order.status === "delivered") {
+      currentStats.totalDelivered += 1;
+    }
+  }
+
+  let prevStats = {
+    totalRevenue: 0,
+    totalOrders: 0,
+    totalDelivered: 0,
+  };
+
+  if (compare === "last_week") {
+    const now = new Date();
+    const lastWeekStart = new Date(now);
+    lastWeekStart.setDate(now.getDate() - 14);
+    const lastWeekEnd = new Date(now);
+    lastWeekEnd.setDate(now.getDate() - 7);
+
+    const prevFilter = {
+      createdAt: {
+        $gte: lastWeekStart,
+        $lte: lastWeekEnd,
+      },
+    };
+
+    const prevOrders = await Order.find(prevFilter).populate({
+      path: "items.product",
+      populate: {
+        path: "category",
+        select: "_id",
+      },
+    });
+
+    for (const order of prevOrders) {
+      let includeOrder = false;
+
+      for (const item of order.items) {
+        const product = item.product;
+
+        if (!product || !product.category) continue;
+
+        let productCategoryIds = [];
+
+        if (Array.isArray(product.category)) {
+          productCategoryIds = product.category.map((cat) =>
+            cat._id?.toString?.()
+          );
+        } else if (product.category?._id) {
+          productCategoryIds = [product.category._id.toString()];
+        }
+
+        const matchesCategory =
+          serviceCategoryIds.length === 0 ||
+          productCategoryIds.some((catId) =>
+            serviceCategoryIds.includes(catId)
+          );
+
+        if (matchesCategory) {
+          includeOrder = true;
+          break;
+        }
+      }
+
+      if (!includeOrder) continue;
+
+      prevStats.totalRevenue += parseFloat(order.totalAmount || 0);
+      prevStats.totalOrders += 1;
+
+      if (order.status === "delivered") {
+        prevStats.totalDelivered += 1;
+      }
+    }
+  }
+
+  // Step 5: Build overview object
+  const overview = {
+    totalRevenue: {
+      label: "Total Revenue",
+      value: currentStats.totalRevenue,
+      changes: getChange(currentStats.totalRevenue, prevStats.totalRevenue),
+    },
+    totalOrders: {
+      label: "Total Orders",
+      value: currentStats.totalOrders,
+      changes: getChange(currentStats.totalOrders, prevStats.totalOrders),
+    },
+    totalDelivered: {
+      label: "Delivered Orders",
+      value: currentStats.totalDelivered,
+      changes: getChange(currentStats.totalDelivered, prevStats.totalDelivered),
+    },
+  };
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { overview },
+        "Order overview fetched successfully",
+        true
+      )
+    );
 });
 
 const validateId = (id, name) => {
@@ -321,7 +519,6 @@ const createOrder = asyncHandler(async (req, res) => {
 
 const getOrderHistory = asyncHandler(async (req, res) => {
   try {
-    console.log(req.user._id);
     if (!req.user._id) {
       return res
         .status(401)
@@ -331,7 +528,6 @@ const getOrderHistory = asyncHandler(async (req, res) => {
     let orders = await Order.find({ user: req.user._id }).sort({
       createdAt: -1,
     });
-
 
     orders = orders.filter((order) => order && typeof order === "object");
 
@@ -401,4 +597,40 @@ const updateOrder = asyncHandler(async (req, res) => {
     );
 });
 
-module.exports = { createOrder, getOrderHistory, getAllOrders, updateOrder };
+const getOrderById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const adminId = req.admin._id;
+
+  if (!adminId) {
+    return res
+      .status(401)
+      .json(new ApiResponse(401, null, "Unauthorized", false));
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res
+      .status(400)
+      .json(new ApiResponse(400, null, "Invalid order ID", false));
+  }
+
+  const order = await Order.findById(id);
+
+  if (!order) {
+    return res
+      .status(404)
+      .json(new ApiResponse(404, null, "Order not found", false));
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, order, "Order fetched successfully", true));
+});
+
+module.exports = {
+  createOrder,
+  getOrderHistory,
+  getAllOrders,
+  updateOrder,
+  getOrderById,
+  getOrderOverview,
+};

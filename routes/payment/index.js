@@ -77,7 +77,6 @@ router.get("/details/:id", async (req, res) => {
     );
 
     const data = response.data;
-    console.log(data, "Payment Details >>>>>>>>>>>>>>>>>>>>>>>>");
     res.json({ data: data });
   } catch (error) {
     console.error(

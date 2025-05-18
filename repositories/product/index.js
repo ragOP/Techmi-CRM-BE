@@ -2,6 +2,7 @@ const Category = require("../../models/categoryModel");
 const Product = require("../../models/productsModel");
 const mongoose = require("mongoose");
 const Order = require("../../models/orderModel");
+const { attachInventoryToProducts } = require("../../services/inventory");
 
 const getAllProducts = async ({
   page,
@@ -183,18 +184,31 @@ const getAllProducts = async ({
   const products = await Product.find(filter)
     .sort(sortOptions)
     .skip(skip)
-    .limit(per_page);
+    .limit(per_page)
+    .populate("medicine_type");
 
   const total = await Product.countDocuments(filter);
 
+  const productsWithInventory = await attachInventoryToProducts(products);
+
   return {
-    data: products,
+    data: productsWithInventory,
     total,
   };
 };
 
+const Inventory = require("../../models/inventoryModel");
+
 const getProductById = async (id) => {
-  return await Product.findById(id);
+  const product = await Product.findById(id).populate("medicine_type");
+  if (!product) return null;
+
+  const inventory = await Inventory.findOne({ product_id: product._id });
+  const productObj = product.toJSON();
+
+  productObj.inventory = inventory ? inventory.quantity : 0;
+
+  return productObj;
 };
 
 const createProduct = async (data) => {
@@ -216,11 +230,17 @@ const getProductsByAdmin = async ({ id, filters, page, per_page }) => {
   const query = { ...filters, created_by_admin: id };
 
   const [products, total] = await Promise.all([
-    Product.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    Product.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("MedicineType"),
     Product.countDocuments(query),
   ]);
 
-  return { products, total };
+  const productsWithInventory = await attachInventoryToProducts(products);
+
+  return { products: productsWithInventory, total };
 };
 
 const bulkCreateProducts = async (productsData) => {

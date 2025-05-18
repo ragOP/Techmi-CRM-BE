@@ -75,8 +75,12 @@ const ProductSchema = new mongoose.Schema(
       default: {},
     },
     uploaded_by_brand: {
-      type: String,
-      maxlength: 255,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Brand",
+    },
+    medicine_type: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "MedicineType",
     },
     is_best_seller: {
       type: Boolean,
@@ -91,6 +95,50 @@ const ProductSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Admin",
       required: true,
+    },
+    is_active: {
+      type: Boolean,
+      default: true,
+    },
+    gst: {
+      type: mongoose.Schema.Types.Decimal128,
+      default: 0,
+      validate: {
+        validator: function (value) {
+          return value >= 0 && value <= 100;
+        },
+        message: "GST must be between 0 and 100",
+      },
+    },
+    csgt: {
+      type: mongoose.Schema.Types.Decimal128,
+      default: 0,
+      validate: {
+        validator: function (value) {
+          return value >= 0 && value <= 100;
+        },
+        message: "CGST must be between 0 and 100",
+      },
+    },
+    sgst: {
+      type: mongoose.Schema.Types.Decimal128,
+      default: 0,
+      validate: {
+        validator: function (value) {
+          return value >= 0 && value <= 100;
+        },
+        message: "SGST must be between 0 and 100",
+      },
+    },
+    igst: {
+      type: mongoose.Schema.Types.Decimal128,
+      default: 0,
+      validate: {
+        validator: function (value) {
+          return value >= 0 && value <= 100;
+        },
+        message: "IGST must be between 0 and 100",
+      },
     },
   },
   { timestamps: true }
@@ -109,6 +157,10 @@ ProductSchema.set("toJSON", {
       ret.salesperson_discounted_price = parseFloat(
         ret.salesperson_discounted_price.toString()
       );
+    if (ret.gst) ret.gst = parseFloat(ret.gst.toString());
+    if (ret.csgt) ret.csgt = parseFloat(ret.csgt.toString());
+    if (ret.sgst) ret.sgst = parseFloat(ret.sgst.toString());
+    if (ret.igst) ret.igst = parseFloat(ret.igst.toString());
     return ret;
   },
 });

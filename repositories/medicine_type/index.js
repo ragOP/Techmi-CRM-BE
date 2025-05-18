@@ -1,15 +1,18 @@
 const MedicineType = require("../../models/medicineType");
 
+const getAllMedicineTypes = async () => MedicineType.find();
 
-const getAllMedicineTypesWithCount = async () => {
+const getAllMedicineTypesWithCount = async ({ search }) => {
+  const filter = {};
+  if (search) {
+    filter.name = { $regex: search, $options: "i" };
+  }
   const [types, total] = await Promise.all([
-    MedicineType.find(),
-    MedicineType.countDocuments()
+    MedicineType.find(filter),
+    MedicineType.countDocuments(filter),
   ]);
   return { types, total };
 };
-
-const getAllMedicineTypes = async () => MedicineType.find();
 
 const getMedicineTypeById = async (id) => MedicineType.findById(id);
 
@@ -22,11 +25,11 @@ const deleteMedicineType = async (id) => MedicineType.findByIdAndDelete(id);
 
 const findByName = async (name) => {
   return await MedicineType.findOne({ name });
-}
+};
 
 const findById = async (id) => {
   return await MedicineType.findById(id);
-}
+};
 
 module.exports = {
   getAllMedicineTypes,
@@ -36,5 +39,5 @@ module.exports = {
   deleteMedicineType,
   getAllMedicineTypesWithCount,
   findByName,
-  findById
+  findById,
 };

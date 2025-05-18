@@ -31,6 +31,7 @@ const OrderItemSchema = new mongoose.Schema({
       banner_image: String,
     }),
     required: true,
+    ref: "Product",
   },
   quantity: {
     type: Number,

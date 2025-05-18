@@ -10,10 +10,10 @@ const {
   // logoutUser,
 } = require("../../../controllers/auth/user/index");
 const { user } = require("../../../middleware/auth/userMiddleware");
-const { superAdmin } = require("../../../middleware/auth/adminMiddleware");
+const { superAdmin, adminOrSuperAdmin } = require("../../../middleware/auth/adminMiddleware");
 const router = express.Router();
 
-router.get("/", superAdmin, getAllUsers);
+router.get("/", adminOrSuperAdmin, getAllUsers);
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.get("/role", user, getUsersByRole);

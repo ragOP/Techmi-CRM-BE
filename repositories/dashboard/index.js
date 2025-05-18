@@ -2,10 +2,18 @@ const User = require("../../models/userModel");
 const Order = require("../../models/orderModel");
 
 const getDashboardOverview = async ({ start_date, end_date }) => {
+  let mainFilter = {};
+  if (start_date || end_date) {
+    mainFilter.createdAt = {};
+    if (start_date) mainFilter.createdAt.$gte = new Date(start_date);
+    if (end_date) mainFilter.createdAt.$lte = new Date(end_date);
+  }
+
   const [totalUsers, totalOrders, totalRevenueAgg] = await Promise.all([
-    User.countDocuments(),
-    Order.countDocuments(),
+    User.countDocuments(mainFilter),
+    Order.countDocuments(mainFilter),
     Order.aggregate([
+      ...(Object.keys(mainFilter).length ? [{ $match: mainFilter }] : []),
       { $group: { _id: null, total: { $sum: "$totalAmount" } } },
     ]),
   ]);
@@ -13,25 +21,22 @@ const getDashboardOverview = async ({ start_date, end_date }) => {
     ? parseFloat(totalRevenueAgg[0].total.toString())
     : 0;
 
-  // Last week stats
-  const lastWeekFilter = {};
-  if (start_date)
-    lastWeekFilter.createdAt = {
-      ...lastWeekFilter.createdAt,
-      $gte: new Date(start_date),
-    };
-  if (end_date)
-    lastWeekFilter.createdAt = {
-      ...lastWeekFilter.createdAt,
-      $lte: new Date(end_date),
-    };
+  // Last week stats (unchanged)
+  let lastWeekFilter = {};
+  if (start_date || end_date) {
+    lastWeekFilter.createdAt = {};
+    if (start_date) lastWeekFilter.createdAt.$gte = new Date(start_date);
+    if (end_date) lastWeekFilter.createdAt.$lte = new Date(end_date);
+  }
 
   const [usersLastWeek, ordersLastWeek, revenueLastWeekAgg] = await Promise.all(
     [
       User.countDocuments(lastWeekFilter),
       Order.countDocuments(lastWeekFilter),
       Order.aggregate([
-        { $match: lastWeekFilter },
+        ...(Object.keys(lastWeekFilter).length
+          ? [{ $match: lastWeekFilter }]
+          : []),
         { $group: { _id: null, total: { $sum: "$totalAmount" } } },
       ]),
     ]

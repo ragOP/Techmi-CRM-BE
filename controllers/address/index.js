@@ -32,7 +32,6 @@ const getAddressByUserId = asyncHandler(async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.json(new ApiResponse(400, null, "Invalid user ID", false));
   }
-  console.log(id, "RES <<<<<");
   // Fetch addresses for the user
   const addresses = await AddressServices.getAddressesByUserId(id);
 

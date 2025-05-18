@@ -34,7 +34,6 @@ const getServiceById = asyncHandler(async (req, res) => {
 
 const createService = asyncHandler(async (req, res) => {
   const images = req.files;
-  console.log("> 11111", images);
 
   if (!images) {
     return res.json(new ApiResponse(404, null, "No Image Found", false));
@@ -46,10 +45,7 @@ const createService = asyncHandler(async (req, res) => {
     serviceData.meta_data = JSON.parse(serviceData.meta_data);
   }
 
-  console.log("> 11111", serviceData);
-
   const service = await ServiceServices.createService(serviceData);
-  console.log("> service", service);
   res.json(new ApiResponse(200, service, "Service created successfully", true));
 });
 

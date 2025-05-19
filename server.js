@@ -29,6 +29,7 @@ const dashboardRoute = require("./routes/dashboard/index.js");
 const brandRoute = require("./routes/brand/index.js");
 const medicineTypeRoute = require("./routes/medicine_type/index.js");
 const inventoryRoute = require("./routes/inventory/index.js");
+const hsncodesRoute = require("./routes/hsn_code/index.js");
 
 // Connect DB
 connectDB();
@@ -63,6 +64,7 @@ app.use("/api/dashboard", dashboardRoute);
 app.use("/api/brand", brandRoute);
 app.use("/api/medicine-type", medicineTypeRoute);
 app.use("/api/inventory", inventoryRoute);
+app.use("/api/hsn", hsncodesRoute);
 
 // Documentation (Development)
 app.use("/api-doc", swaggerUI.serve, swaggerUI.setup(swaggerSpec));

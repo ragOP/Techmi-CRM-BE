@@ -9,4 +9,4 @@ router.post("/", HsnCodeController.createHSNCode);
 router.put("/:id", HsnCodeController.updateHSNCode);
 router.delete("/:id", HsnCodeController.deleteHSNCode);
 
-export default router;
+module.exports = router

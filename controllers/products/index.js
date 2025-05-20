@@ -5,9 +5,18 @@ const { asyncHandler } = require("../../common/asyncHandler.js");
 const {
   uploadMultipleFiles,
   uploadSingleFile,
+  uploadPDF,
 } = require("../../utils/upload/index.js");
 const Product = require("../../models/productsModel.js");
 const { totalmem } = require("os");
+const {
+  convertToXML,
+  convertToXLSX,
+} = require("../../helpers/products/convertToXSLV.js");
+const { convertToCSV } = require("../../helpers/products/convertToCSV.js");
+const path = require("path");
+const fs = require("fs/promises");
+const os = require("os");
 
 const getAllProducts = asyncHandler(async (req, res) => {
   const {
@@ -24,7 +33,6 @@ const getAllProducts = asyncHandler(async (req, res) => {
     start_date,
     end_date,
   } = req.query;
-  console.log("Admin ID >>>>>>>>>>>>>>>>>>>>>>>>>");
 
   const products = await ProductsServices.getAllProducts({
     page: parseInt(page, 10),
@@ -214,6 +222,74 @@ const bulkCreateProducts = asyncHandler(async (req, res) => {
     .json(new ApiResponse(207, result, "Batch processing completed", true));
 });
 
+const exportProducts = asyncHandler(async (req, res) => {
+  const fileType = req.query.fileType?.toLowerCase() || "xlsx";
+  const startDate = req.query.start_date
+    ? new Date(req.query.start_date)
+    : null;
+  const endDate = req.query.end_date ? new Date(req.query.end_date) : null;
+
+  const filter = {};
+  if (startDate && endDate) {
+    filter.createdAt = { $gte: startDate, $lte: endDate };
+  } else if (startDate) {
+    filter.createdAt = { $gte: startDate };
+  } else if (endDate) {
+    filter.createdAt = { $lte: endDate };
+  }
+
+  const products = await Product.find(filter).lean();
+  const serializedProducts = products.map((p) => {
+    const { __v, _id, createdAt, updatedAt, ...rest } = p;
+    return {
+      id: p._id.toString(),
+      createdAt: createdAt?.toISOString(),
+      updatedAt: updatedAt?.toISOString(),
+      ...rest,
+    };
+  });
+
+  let buffer;
+  let mimeType = "";
+  let filename = `products_${Date.now()}.${fileType}`;
+
+  if (fileType === "csv") {
+    const content = convertToCSV(serializedProducts);
+    buffer = Buffer.from(content, "utf-8");
+    mimeType = "text/csv";
+  } else if (fileType === "xlsx") {
+    buffer = convertToXLSX(serializedProducts); // should return Buffer
+    mimeType =
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  } else {
+    return res
+      .status(400)
+      .json(new ApiResponse(400, null, "Unsupported file type", false));
+  }
+
+  // Write buffer to a temp file
+  const tempDir = os.tmpdir();
+  const tempFilePath = path.join(tempDir, filename);
+  await fs.writeFile(tempFilePath, buffer);
+
+  // Upload to Cloudinary
+  const url = await uploadPDF(tempFilePath, "exports");
+
+  console.log("Cloudinary File URL:", url);
+
+  // Respond with the Cloudinary URL
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { url, mimeType, filename },
+        "Products exported and uploaded successfully",
+        true
+      )
+    );
+});
+
 module.exports = {
   getAllProducts,
   getProductById,
@@ -222,4 +298,5 @@ module.exports = {
   deleteProduct,
   getProductsByAdmin,
   bulkCreateProducts,
+  exportProducts,
 };

@@ -21,6 +21,7 @@ router.post(
   ProductsController.createProduct
 );
 
+router.get("/export", adminOrSuperAdmin, ProductsController.exportProducts);
 router.get("/admin", adminOrSubAdmin, ProductsController.getProductsByAdmin);
 router.post("/batch", admin, ProductsController.bulkCreateProducts);
 

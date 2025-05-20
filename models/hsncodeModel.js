@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const HSNCodeSchema = new mongoose.Schema(
   {
@@ -39,4 +39,6 @@ const HSNCodeSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export const HSNCode = mongoose.model("HSNCode", HSNCodeSchema);
+const HSNCode = mongoose.model("HSNCode", HSNCodeSchema);
+
+module.exports = HSNCode;

@@ -8,6 +8,7 @@ const {
   adminOrSuperAdmin,
 } = require("../../middleware/auth/adminMiddleware.js");
 
+router.get("/export", superAdmin, OrderController.exportOrders);
 router.get("/", adminOrSuperAdmin, OrderController.getAllOrders);
 router.get("/overview", adminOrSuperAdmin, OrderController.getOrderOverview);
 

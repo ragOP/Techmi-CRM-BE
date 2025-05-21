@@ -1,3 +1,6 @@
+const fs = require("fs").promises;
+const os = require("os");
+const path = require("path");
 const { asyncHandler } = require("../../common/asyncHandler");
 const ApiResponse = require("../../utils/ApiResponse");
 const mongoose = require("mongoose");
@@ -8,6 +11,9 @@ const Order = require("../../models/orderModel");
 const Coupon = require("../../models/couponModel");
 const Category = require("../../models/categoryModel");
 const Services = require("../../models/servicesModel");
+const { uploadPDF } = require("../../utils/upload");
+const { convertToXLSX } = require("../../helpers/products/convertToXSLV");
+const { convertToCSV } = require("../../helpers/products/convertToCSV");
 
 const getAllOrders = asyncHandler(async (req, res) => {
   const adminId = req.admin._id;
@@ -626,6 +632,185 @@ const getOrderById = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, order, "Order fetched successfully", true));
 });
 
+const exportOrders = asyncHandler(async (req, res) => {
+  const adminId = req.admin._id;
+  if (!adminId) {
+    return res
+      .status(401)
+      .json(new ApiResponse(401, null, "Unauthorized", false));
+  }
+
+  const {
+    service_id,
+    search = "",
+    start_date,
+    end_date,
+    fileType = "xlsx"
+  } = req.query;
+
+  try {
+    let query = {};
+
+    if (service_id) {
+      if (!mongoose.Types.ObjectId.isValid(service_id)) {
+        return res
+          .status(400)
+          .json(new ApiResponse(400, null, "Invalid service_id format", false));
+      }
+
+      const serviceObjectId = new mongoose.Types.ObjectId(service_id);
+
+      const categoryIds = await Category.find({
+        service: serviceObjectId,
+      }).distinct("_id");
+
+      if (categoryIds.length === 0) {
+        return res
+          .status(404)
+          .json(
+            new ApiResponse(
+              404,
+              null,
+              "No categories found for this service",
+              false
+            )
+          );
+      }
+
+      const productIds = await Product.find({
+        category: { $in: categoryIds },
+      }).distinct("_id");
+
+      if (productIds.length === 0) {
+        return res
+          .status(404)
+          .json(
+            new ApiResponse(
+              404,
+              null,
+              "No products found in these categories",
+              false
+            )
+          );
+      }
+
+      query["items.product"] = { $in: productIds };
+    }
+
+    // Search filter
+    if (search.trim()) {
+      const productIdsByName = await Product.find({
+        name: { $regex: search, $options: "i" },
+      }).distinct("_id");
+
+      query["$or"] = [
+        { orderNumber: { $regex: search, $options: "i" } },
+        { "customer.name": { $regex: search, $options: "i" } },
+        { "items.product": { $in: productIdsByName } },
+      ];
+    }
+
+    // Date filter
+    if (start_date || end_date) {
+      query.createdAt = {};
+      if (start_date) query.createdAt.$gte = new Date(start_date);
+      if (end_date) query.createdAt.$lte = new Date(end_date);
+    }
+
+    // Populate the necessary fields
+    const orders = await Order.find(query)
+      .populate('items.product')
+      .populate('customer')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const serializedOrders = orders.map((order) => {
+      return {
+        id: order._id?.toString() || '',
+        orderNumber: order.orderNumber || '',
+        customerName: order.customer?.name || '',
+        customerEmail: order.customer?.email || '',
+        customerPhone: order.customer?.phone || '',
+        items: (order.items || []).map(item => ({
+          productName: item.product?.name || 'N/A',
+          quantity: item.quantity || 0,
+          price: item.price || 0
+        })),
+        totalAmount: order.totalAmount || 0,
+        status: order.status || '',
+        paymentStatus: order.paymentStatus || '',
+        createdAt: order.createdAt ? new Date(order.createdAt).toISOString() : '',
+        updatedAt: order.updatedAt ? new Date(order.updatedAt).toISOString() : ''
+      };
+    });
+
+    let buffer;
+    let mimeType = "";
+    let filename = `orders_${Date.now()}.${fileType}`;
+
+    if (fileType.toLowerCase() === "csv") {
+      // Flatten the items array for CSV export
+      const flattenedOrders = serializedOrders.map(order => {
+        const flatOrder = {
+          id: order.id,
+          orderNumber: order.orderNumber,
+          customerName: order.customerName,
+          customerEmail: order.customerEmail,
+          customerPhone: order.customerPhone,
+          totalAmount: order.totalAmount,
+          status: order.status,
+          paymentStatus: order.paymentStatus,
+          createdAt: order.createdAt,
+          updatedAt: order.updatedAt,
+          products: order.items.map(item => item.productName).join(', '),
+          quantities: order.items.map(item => item.quantity).join(', '),
+          prices: order.items.map(item => item.price).join(', ')
+        };
+        return flatOrder;
+      });
+
+      const content = convertToCSV(flattenedOrders);
+      buffer = Buffer.from(content, "utf-8");
+      mimeType = "text/csv";
+    } else if (fileType.toLowerCase() === "xlsx") {
+      buffer = convertToXLSX(serializedOrders);
+      mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    } else {
+      return res
+        .status(400)
+        .json(new ApiResponse(400, null, "Unsupported file type", false));
+    }
+
+    // Write buffer to a temp file
+    const tempDir = os.tmpdir();
+    const tempFilePath = path.join(tempDir, filename);
+    await fs.writeFile(tempFilePath, buffer);
+
+    // Upload to Cloudinary
+    const url = await uploadPDF(tempFilePath, "exports");
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { 
+            url, 
+            mimeType, 
+            filename,
+            total: orders.length 
+          },
+          "Orders exported and uploaded successfully",
+          true
+        )
+      );
+  } catch (error) {
+    console.error("Error exporting orders:", error);
+    return res
+      .status(500)
+      .json(new ApiResponse(500, null, "Server error", false));
+  }
+});
 module.exports = {
   createOrder,
   getOrderHistory,
@@ -633,4 +818,5 @@ module.exports = {
   updateOrder,
   getOrderById,
   getOrderOverview,
+  exportOrders
 };

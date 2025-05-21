@@ -1,7 +1,7 @@
 const BrandRepository = require("../../repositories/brand");
 
-const getAllBrandsWithCount = async ({ search }) => {
-  return await BrandRepository.getAllBrandsWithCount({ search });
+const getAllBrandsWithCount = async ({ filters }) => {
+  return await BrandRepository.getAllBrandsWithCount({ filters });
 };
 
 const getAllBrands = async () => BrandRepository.getAllBrands();

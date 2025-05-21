@@ -4,10 +4,22 @@ const MedicineTypeService = require("../../services/medicine_type");
 const { asyncHandler } = require("../../common/asyncHandler.js");
 
 const getAllMedicineTypes = asyncHandler(async (req, res) => {
-  const { search } = req.query;
+  const { search, start_date, end_date } = req.query;
+
+  const filters = {
+    ...(search && { code: { $regex: search, $options: "i" } }),
+    ...(start_date || end_date
+      ? {
+          createdAt: {
+            ...(start_date && { $gte: new Date(start_date) }),
+            ...(end_date && { $lte: new Date(end_date) }),
+          },
+        }
+      : {}),
+  };
 
   const { types, total } =
-    await MedicineTypeService.getAllMedicineTypesWithCount({ search });
+    await MedicineTypeService.getAllMedicineTypesWithCount({ filters });
   res.json(
     new ApiResponse(
       200,

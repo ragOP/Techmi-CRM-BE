@@ -1,7 +1,13 @@
 const User = require("../../models/userModel.js");
 const ServiceRepository = require("../../repositories/service/index.js");
 
-const getAllServices = async ({ search, page, per_page }) => {
+const getAllServices = async ({
+  search,
+  page,
+  per_page,
+  start_date,
+  end_date,
+}) => {
   const filters = {
     ...(search && {
       name: {
@@ -9,7 +15,17 @@ const getAllServices = async ({ search, page, per_page }) => {
         $options: "i",
       },
     }),
+    ...(start_date || end_date
+      ? {
+          createdAt: {
+            ...(start_date && { $gte: new Date(start_date) }),
+            ...(end_date && { $lte: new Date(end_date) }),
+          },
+        }
+      : {}),
   };
+
+  console.log(filters, "filters");
   return await ServiceRepository.getAllServices({ filters, page, per_page });
 };
 

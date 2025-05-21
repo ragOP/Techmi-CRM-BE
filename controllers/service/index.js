@@ -5,12 +5,14 @@ const { asyncHandler } = require("../../common/asyncHandler.js");
 const { uploadMultipleFiles } = require("../../utils/upload/index.js");
 
 const getAllServices = asyncHandler(async (req, res) => {
-  const { search, page, per_page = 50 } = req.query;
+  const { search, page, per_page = 50, start_date, end_date } = req.query;
 
   const services = await ServiceServices.getAllServices({
     search,
     page,
     per_page,
+    start_date,
+    end_date
   });
   res.json(
     new ApiResponse(200, services, "Services fetched successfully", true)

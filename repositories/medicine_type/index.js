@@ -2,14 +2,10 @@ const MedicineType = require("../../models/medicineType");
 
 const getAllMedicineTypes = async () => MedicineType.find();
 
-const getAllMedicineTypesWithCount = async ({ search }) => {
-  const filter = {};
-  if (search) {
-    filter.name = { $regex: search, $options: "i" };
-  }
+const getAllMedicineTypesWithCount = async ({ filters }) => {
   const [types, total] = await Promise.all([
-    MedicineType.find(filter),
-    MedicineType.countDocuments(filter),
+    MedicineType.find(filters),
+    MedicineType.countDocuments(filters),
   ]);
   return { types, total };
 };

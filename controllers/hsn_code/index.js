@@ -3,9 +3,28 @@ const HSNCodeService = require("../../services/hsn_code/index.js");
 const ApiResponse = require("../../utils/ApiResponse.js");
 
 const getAllHSNCodes = asyncHandler(async (req, res) => {
-  const { data, total } = await HSNCodeService.getAllHSNCodes();
+  const { start_date, end_date } = req.query;
+  const query = {
+    ...(start_date || end_date
+      ? {
+          createdAt: {
+            ...(start_date && { $gte: new Date(start_date) }),
+            ...(end_date && { $lte: new Date(end_date) }),
+          },
+        }
+      : {}),
+  };
+
+  const { data, total } = await HSNCodeService.getAllHSNCodes({
+    query,
+  });
   res.json(
-    new ApiResponse(200, { data, total }, "HSN coes fetch succesfully", true)
+    new ApiResponse(
+      200,
+      { data, total },
+      "HSN codes fetched successfully",
+      true
+    )
   );
 });
 

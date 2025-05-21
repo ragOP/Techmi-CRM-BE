@@ -10,13 +10,21 @@ const getAllUsers = asyncHandler(async (req, res) => {
     return res.json(new ApiResponse(404, null, "Not authorized"));
   }
 
-  const { search, page, per_page = 50 } = req.query;
+  const { search, page, per_page = 50, start_date, end_date } = req.query;
 
   const filters = {
     ...(search && {
       name: { $regex: search, $options: "i" },
       email: { $regex: search, $options: "i" },
     }),
+    ...(start_date || end_date
+      ? {
+          createdAt: {
+            ...(start_date && { $gte: new Date(start_date) }),
+            ...(end_date && { $lte: new Date(end_date) }),
+          },
+        }
+      : {}),
   };
 
   const skip = (page - 1) * per_page;

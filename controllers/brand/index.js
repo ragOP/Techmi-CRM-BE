@@ -4,9 +4,25 @@ const BrandService = require("../../services/brand/index.js");
 const { asyncHandler } = require("../../common/asyncHandler.js");
 
 const getAllBrands = asyncHandler(async (req, res) => {
-  const { search } = req.query;
+  const { search, start_date, end_date } = req.query;
+  const filters = {
+    ...(search && {
+      name: {
+        $regex: search,
+        $options: "i",
+      },
+    }),
+    ...(start_date || end_date
+      ? {
+          createdAt: {
+            ...(start_date && { $gte: new Date(start_date) }),
+            ...(end_date && { $lte: new Date(end_date) }),
+          },
+        }
+      : {}),
+  };
   const { brands, total } = await BrandService.getAllBrandsWithCount({
-    search,
+    filters,
   });
   res.json(
     new ApiResponse(

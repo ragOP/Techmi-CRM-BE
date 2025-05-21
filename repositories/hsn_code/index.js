@@ -1,6 +1,6 @@
 const HSNCode = require("../../models/hsncodeModel.js");
 
-const findAll = () => HSNCode.find();
+const findAll = (query) => HSNCode.find(query);
 
 const findById = (id) => HSNCode.findById(id);
 
@@ -13,7 +13,7 @@ const updateById = (id, data) =>
 
 const deleteById = (id) => HSNCode.findByIdAndDelete(id);
 
-const count = (filter = {}) => HSNCode.countDocuments(filter);
+const count = (query = {}) => HSNCode.countDocuments(query);
 
 module.exports = {
   findAll,

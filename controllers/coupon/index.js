@@ -41,7 +41,7 @@ const getAdminCoupons = asyncHandler(async (req, res) => {
   const adminId = req.admin._id;
   const role = req.admin.role;
 
-  const { page = 1, per_page = 50, search = "" } = req.query;
+  const { page = 1, per_page = 50, search = "", start_date, end_date } = req.query;
 
   if (!mongoose.Types.ObjectId.isValid(adminId)) {
     return res.json(new ApiResponse(400, null, "Invalid admin ID", false));
@@ -50,6 +50,14 @@ const getAdminCoupons = asyncHandler(async (req, res) => {
   const query = {
     ...(search && { code: { $regex: search, $options: "i" } }),
     ...(role !== "super_admin" && { created_by_admin: adminId }),
+    ...(start_date || end_date
+      ? {
+          createdAt: {
+            ...(start_date && { $gte: new Date(start_date) }),
+            ...(end_date && { $lte: new Date(end_date) }),
+          },
+        }
+      : {}),
   };
 
   const totalCoupons = await Coupon.countDocuments(query);

@@ -8,7 +8,7 @@ const {
 } = require("../../../utils/auth");
 
 const getAllAdmins = asyncHandler(async (req, res) => {
-  const { search = "", page = 1, per_page = 50 } = req.query;
+  const { search = "", page = 1, per_page = 50, start_date, end_date } = req.query;
 
   const superAdminId = req.admin._id;
 
@@ -23,6 +23,13 @@ const getAllAdmins = asyncHandler(async (req, res) => {
       { name: { $regex: search, $options: "i" } },
       { email: { $regex: search, $options: "i" } },
     ];
+  }
+
+  if (start_date || end_date) {
+    query.createdAt = {
+      ...(start_date && { $gte: new Date(start_date) }),
+      ...(end_date && { $lte: new Date(end_date) }),
+    };
   }
 
   const skip = (page - 1) * per_page;

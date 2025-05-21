@@ -7,7 +7,7 @@ const {
   loginUser,
   getUserById,
   getUsersByRole,
-  // logoutUser,
+  exportUsers,
 } = require("../../../controllers/auth/user/index");
 const { user } = require("../../../middleware/auth/userMiddleware");
 const { superAdmin, adminOrSuperAdmin } = require("../../../middleware/auth/adminMiddleware");
@@ -17,9 +17,8 @@ router.get("/", adminOrSuperAdmin, getAllUsers);
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.get("/role", user, getUsersByRole);
+router.get("/export", superAdmin, exportUsers);
 router.get("/:id", getUserById);
-
-// router.post("/logout", logoutUser);
 
 // DEVELOPMENT API's
 router.patch("/:id", updateUser);

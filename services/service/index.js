@@ -24,8 +24,7 @@ const getAllServices = async ({
         }
       : {}),
   };
-
-  console.log(filters, "filters");
+  console.log("filters", filters);
   return await ServiceRepository.getAllServices({ filters, page, per_page });
 };
 

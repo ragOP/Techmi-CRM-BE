@@ -1,4 +1,9 @@
+const os = require("os");
+const path = require("path");
+const fs = require("fs/promises");
 const { asyncHandler } = require("../../../common/asyncHandler");
+const { convertToCSV } = require("../../../helpers/products/convertToCSV");
+const { convertToXLSX } = require("../../../helpers/products/convertToXSLV");
 const Admin = require("../../../models/adminModel");
 const Services = require("../../../models/servicesModel");
 const ApiResponse = require("../../../utils/ApiResponse");
@@ -6,9 +11,16 @@ const {
   generateAccessToken,
   // generateRefreshToken,
 } = require("../../../utils/auth");
+const { uploadPDF } = require("../../../utils/upload");
 
 const getAllAdmins = asyncHandler(async (req, res) => {
-  const { search = "", page = 1, per_page = 50, start_date, end_date } = req.query;
+  const {
+    search = "",
+    page = 1,
+    per_page = 50,
+    start_date,
+    end_date,
+  } = req.query;
 
   const superAdminId = req.admin._id;
 
@@ -233,6 +245,80 @@ const registerSubAdmin = asyncHandler(async (req, res) => {
   );
 });
 
+const exportAdmins = asyncHandler(async (req, res) => {
+  const fileType = req.query.fileType?.toLowerCase() || "xlsx";
+  const startDate = req.query.start_date
+    ? new Date(req.query.start_date)
+    : null;
+  const endDate = req.query.end_date ? new Date(req.query.end_date) : null;
+
+  const filter = {
+    role: "admin",
+  };
+  if (startDate && endDate) {
+    filter.createdAt = { $gte: startDate, $lte: endDate };
+  } else if (startDate) {
+    filter.createdAt = { $gte: startDate };
+  } else if (endDate) {
+    filter.createdAt = { $lte: endDate };
+  }
+
+  const admins = await Admin.find(filter).lean().select("-password").populate({
+    path: "services",
+    select: "name",
+  });
+  const serializedAdmins = admins.map((p) => {
+    const { __v, _id, createdAt, updatedAt, services, ...rest } = p;
+    return {
+      id: _id.toString(),
+      createdAt: createdAt?.toISOString(),
+      updatedAt: updatedAt?.toISOString(),
+      services: services?.map((s) => s.name).join(", "),
+      ...rest,
+    };
+  });
+
+  let buffer;
+  let mimeType = "";
+  let filename = `admins_${Date.now()}.${fileType}`;
+
+  if (fileType === "csv") {
+    const content = convertToCSV(serializedAdmins);
+    buffer = Buffer.from(content, "utf-8");
+    mimeType = "text/csv";
+  } else if (fileType === "xlsx") {
+    buffer = convertToXLSX(serializedAdmins);
+    mimeType =
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  } else {
+    return res
+      .status(400)
+      .json(new ApiResponse(400, null, "Unsupported file type", false));
+  }
+
+  // Write buffer to a temp file
+  const tempDir = os.tmpdir();
+  const tempFilePath = path.join(tempDir, filename);
+  await fs.writeFile(tempFilePath, buffer);
+
+  // Upload to Cloudinary
+  const url = await uploadPDF(tempFilePath, "exports");
+
+  console.log("Cloudinary File URL:", url);
+
+  // Respond with the Cloudinary URL
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { url, mimeType, filename },
+        "Products exported and uploaded successfully",
+        true
+      )
+    );
+});
+
 module.exports = {
   getAllAdmins,
   registerAdmin,
@@ -241,6 +327,7 @@ module.exports = {
   deleteAdmin,
   getAllSubAdmins,
   registerSubAdmin,
+  exportAdmins,
   // logoutAdmin,
 };
 

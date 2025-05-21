@@ -8,6 +8,7 @@ const {
   loginAdmin,
   getAllSubAdmins,
   registerSubAdmin,
+  exportAdmins,
 } = require("../../../controllers/auth/admin/index");
 const {
   admin,
@@ -21,6 +22,7 @@ router.post("/register", registerAdmin);
 router.post("/login", loginAdmin);
 router.get("/sub-admin", admin, getAllSubAdmins);
 router.post("/sub-admin", admin, registerSubAdmin);
+router.get("/export", superAdmin, exportAdmins);
 // router.post("/logout", logoutAdmin);
 
 // DEVELOPMENT API's

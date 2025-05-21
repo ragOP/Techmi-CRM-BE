@@ -1,7 +1,12 @@
 const HSNCodeRepository = require("../../repositories/hsn_code/index.js");
 
-const getAllHSNCodes = async () => HSNCodeRepository.findAll();
-
+const getAllHSNCodes = async () => {
+  const [data, total] = await Promise.all([
+    HSNCodeRepository.findAll(),
+    HSNCodeRepository.count(),
+  ]);
+  return { data, total };
+};
 const getHSNById = async (id) => HSNCodeRepository.findById(id);
 
 const createHSNCode = async (data) => {

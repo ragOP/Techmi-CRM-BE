@@ -13,6 +13,8 @@ const updateById = (id, data) =>
 
 const deleteById = (id) => HSNCode.findByIdAndDelete(id);
 
+const count = (filter = {}) => HSNCode.countDocuments(filter);
+
 module.exports = {
   findAll,
   findById,
@@ -20,4 +22,5 @@ module.exports = {
   create,
   updateById,
   deleteById,
+  count,
 };

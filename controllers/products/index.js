@@ -8,9 +8,7 @@ const {
   uploadPDF,
 } = require("../../utils/upload/index.js");
 const Product = require("../../models/productsModel.js");
-const { totalmem } = require("os");
 const {
-  convertToXML,
   convertToXLSX,
 } = require("../../helpers/products/convertToXSLV.js");
 const { convertToCSV } = require("../../helpers/products/convertToCSV.js");

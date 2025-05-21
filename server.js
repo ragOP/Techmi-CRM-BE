@@ -65,7 +65,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/brand", brandRoutes);
 app.use("/api/medicine-type", medicineTypeRoutes);
 app.use("/api/inventory", inventoryRoutes);
-app.use("/api/hsn", hsncodesRoutes);
+app.use("/api/hsn-codes", hsncodesRoutes);
 app.use("/api/media", mediaRoutes);
 
 // Documentation (Development)

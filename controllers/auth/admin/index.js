@@ -308,7 +308,7 @@ const exportAdmins = asyncHandler(async (req, res) => {
   const tempDir = os.tmpdir();
   const tempFilePath = path.join(tempDir, filename);
   await fs.writeFile(tempFilePath, buffer);
-  
+
   const url = await uploadPDF(tempFilePath, "exports");
 
   console.log("Cloudinary File URL:", url);
@@ -390,7 +390,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
             </tr>
             <tr>
               <td align="left" style="color: #555555; font-size: 16px; line-height: 1.6;">
-                <p>If you didn’t request a password reset, please disregard this email. Your account is safe.</p>
+                <p>If you didn't request a password reset, please disregard this email. Your account is safe.</p>
                 <p>If you have any questions, feel free to contact our support team.</p>
               </td>
             </tr>
@@ -443,6 +443,44 @@ const forgotPassword = asyncHandler(async (req, res) => {
   }
 });
 
+const resetPassword = asyncHandler(async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const admin = await Admin.findById(decoded.id);
+
+    if (!admin) {
+      return res
+        .status(404)
+        .json(new ApiResponse(404, null, "Admin not found", false));
+    }
+
+    admin.password = password;
+    await admin.save();
+
+    res.json(new ApiResponse(200, null, "Password reset successfully", true));
+  } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      return res
+        .status(401)
+        .json(
+          new ApiResponse(
+            401,
+            null,
+            "Password reset link has expired. Please request a new one.",
+            false
+          )
+        );
+    }
+    return res
+      .status(401)
+      .json(new ApiResponse(401, null, "Invalid or malformed token", false));
+  }
+});
+
 module.exports = {
   getAllAdmins,
   registerAdmin,
@@ -455,6 +493,7 @@ module.exports = {
   getAdminById,
   // logoutAdmin,
   forgotPassword,
+  resetPassword,
 };
 
 // const logoutAdmin = (req, res) => {

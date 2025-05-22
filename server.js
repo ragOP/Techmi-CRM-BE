@@ -31,6 +31,7 @@ const medicineTypeRoutes = require("./routes/medicine_type/index.js");
 const inventoryRoutes = require("./routes/inventory/index.js");
 const hsncodesRoutes = require("./routes/hsn_code/index.js");
 const mediaRoutes = require("./routes/media/index.js");
+const appBannerRoutes = require("./routes/app_banner/index.js");
 
 // Connect DB
 connectDB();
@@ -67,6 +68,7 @@ app.use("/api/medicine-type", medicineTypeRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/hsn-codes", hsncodesRoutes);
 app.use("/api/media", mediaRoutes);
+app.use("/api/app-banner", appBannerRoutes);
 
 // Documentation (Development)
 app.use("/api-doc", swaggerUI.serve, swaggerUI.setup(swaggerSpec));

@@ -144,7 +144,7 @@ const loginAdmin = asyncHandler(async (req, res) => {
 
 const updateAdmin = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { name, email, role, services } = req.body;
+  const { name, email, role, services, is_active } = req.body;
 
   const admin = await Admin.findById(id);
   if (!admin) {
@@ -156,6 +156,8 @@ const updateAdmin = asyncHandler(async (req, res) => {
   if (name) admin.name = name;
   if (email) admin.email = email;
   if (role) admin.role = role;
+  if (is_active !== undefined) admin.is_active = is_active;
+
   if (services?.length) {
     const validServices = await Services.find({ _id: { $in: services } });
     if (validServices.length !== services.length) {

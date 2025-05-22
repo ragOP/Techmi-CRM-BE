@@ -1,10 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const ContactController = require("../../controllers/contact/index");
-const { admin, superAdmin } = require("../../middleware/auth/adminMiddleware");
+const { adminOrSuperAdmin } = require("../../middleware/auth/adminMiddleware");
 
 router.post("/", ContactController.postUserQuery);
-router.get("/", superAdmin, ContactController.getUserQueries);
-router.delete("/:id", superAdmin, ContactController.deleteUserQueries);
+router.get("/", adminOrSuperAdmin, ContactController.getUserQueries);
+router.delete("/:id", adminOrSuperAdmin, ContactController.deleteUserQueries);
 
 module.exports = router;

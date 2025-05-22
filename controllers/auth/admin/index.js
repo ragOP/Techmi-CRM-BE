@@ -119,6 +119,12 @@ const loginAdmin = asyncHandler(async (req, res) => {
       .json(new ApiResponse(401, null, "Invalid credentials", false));
   }
 
+  if (admin.is_active === false) {
+    return res
+      .status(401)
+      .json(new ApiResponse(401, null, "Admin is not active", false));
+  }
+
   const accessToken = generateAccessToken(admin._id);
   //   const refreshToken = generateRefreshToken(admin._id);
   //   sendRefreshToken(res, refreshToken);
@@ -319,6 +325,21 @@ const exportAdmins = asyncHandler(async (req, res) => {
     );
 });
 
+const getAdminById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const admin = await Admin.findById(id)
+    .select("-password")
+    .populate("services");
+  if (!admin) {
+    return res
+      .status(404)
+      .json(new ApiResponse(404, null, "Admin not found", false));
+  }
+
+  res.json(new ApiResponse(200, admin, "Admin fetched successfully", true));
+});
+
 module.exports = {
   getAllAdmins,
   registerAdmin,
@@ -328,6 +349,7 @@ module.exports = {
   getAllSubAdmins,
   registerSubAdmin,
   exportAdmins,
+  getAdminById,
   // logoutAdmin,
 };
 

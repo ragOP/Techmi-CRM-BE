@@ -9,10 +9,12 @@ const {
   getAllSubAdmins,
   registerSubAdmin,
   exportAdmins,
+  getAdminById,
 } = require("../../../controllers/auth/admin/index");
 const {
   admin,
   superAdmin,
+  adminOrSuperAdmin,
 } = require("../../../middleware/auth/adminMiddleware");
 
 const router = express.Router();
@@ -23,11 +25,10 @@ router.post("/login", loginAdmin);
 router.get("/sub-admin", admin, getAllSubAdmins);
 router.post("/sub-admin", admin, registerSubAdmin);
 router.get("/export", superAdmin, exportAdmins);
+router.get("/:id", superAdmin, getAdminById);
+router.patch("/:id", adminOrSuperAdmin, updateAdmin);
+router.delete("/:id", adminOrSuperAdmin, deleteAdmin);
 // router.post("/logout", logoutAdmin);
-
-// DEVELOPMENT API's
-router.patch("/:id", updateAdmin);
-router.delete("/:id", deleteAdmin);
 
 module.exports = router;
 

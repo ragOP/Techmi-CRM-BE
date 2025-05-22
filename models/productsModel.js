@@ -100,46 +100,55 @@ const ProductSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
-    gst: {
-      type: mongoose.Schema.Types.Decimal128,
-      default: 0,
-      validate: {
-        validator: function (value) {
-          return value >= 0 && value <= 100;
-        },
-        message: "GST must be between 0 and 100",
-      },
+    hsn_code: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "HSNCode",
+      required: false,
     },
-    csgt: {
-      type: mongoose.Schema.Types.Decimal128,
-      default: 0,
-      validate: {
-        validator: function (value) {
-          return value >= 0 && value <= 100;
-        },
-        message: "CGST must be between 0 and 100",
-      },
+    updated_by_admin: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Admin",
     },
-    sgst: {
-      type: mongoose.Schema.Types.Decimal128,
-      default: 0,
-      validate: {
-        validator: function (value) {
-          return value >= 0 && value <= 100;
-        },
-        message: "SGST must be between 0 and 100",
-      },
-    },
-    igst: {
-      type: mongoose.Schema.Types.Decimal128,
-      default: 0,
-      validate: {
-        validator: function (value) {
-          return value >= 0 && value <= 100;
-        },
-        message: "IGST must be between 0 and 100",
-      },
-    },
+    // gst: {
+    //   type: mongoose.Schema.Types.Decimal128,
+    //   default: 0,
+    //   validate: {
+    //     validator: function (value) {
+    //       return value >= 0 && value <= 100;
+    //     },
+    //     message: "GST must be between 0 and 100",
+    //   },
+    // },
+    // csgt: {
+    //   type: mongoose.Schema.Types.Decimal128,
+    //   default: 0,
+    //   validate: {
+    //     validator: function (value) {
+    //       return value >= 0 && value <= 100;
+    //     },
+    //     message: "CGST must be between 0 and 100",
+    //   },
+    // },
+    // sgst: {
+    //   type: mongoose.Schema.Types.Decimal128,
+    //   default: 0,
+    //   validate: {
+    //     validator: function (value) {
+    //       return value >= 0 && value <= 100;
+    //     },
+    //     message: "SGST must be between 0 and 100",
+    //   },
+    // },
+    // igst: {
+    //   type: mongoose.Schema.Types.Decimal128,
+    //   default: 0,
+    //   validate: {
+    //     validator: function (value) {
+    //       return value >= 0 && value <= 100;
+    //     },
+    //     message: "IGST must be between 0 and 100",
+    //   },
+    // },
   },
   { timestamps: true }
 );

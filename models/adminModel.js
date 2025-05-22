@@ -31,6 +31,7 @@ const AdminSchema = new mongoose.Schema(
         message: "created_by is only allowed for sub_admin role",
       },
     },
+    is_active: { type: Boolean, default: true },
   },
   { timestamps: true }
 );

@@ -19,9 +19,7 @@ router.post("/login", loginUser);
 router.get("/role", user, getUsersByRole);
 router.get("/export", superAdmin, exportUsers);
 router.get("/:id", getUserById);
-
-// DEVELOPMENT API's
-router.patch("/:id", updateUser);
-router.delete("/:id", deleteUser);
+router.patch("/:id",adminOrSuperAdmin,  updateUser);
+router.delete("/:id", adminOrSuperAdmin, deleteUser);
 
 module.exports = router;

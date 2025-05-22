@@ -91,6 +91,12 @@ const loginUser = asyncHandler(async (req, res) => {
       .json(new ApiResponse(401, null, "Invalid credentials", false));
   }
 
+  if (user.is_active === false) {
+    return res
+      .status(401)
+      .json(new ApiResponse(401, null, "Admin is not active", false));
+  }
+
   const accessToken = generateAccessToken(user._id);
 
   const data = {

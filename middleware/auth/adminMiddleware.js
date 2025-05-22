@@ -2,6 +2,40 @@ const jwt = require("jsonwebtoken");
 const Admin = require("../../models/adminModel");
 const ApiResponse = require("../../utils/ApiResponse");
 
+
+const authenticateRoleWithoutToken = async (req, res, next) => {
+  const { email } = req.body;
+
+  const admin = await Admin.findOne({ email });
+
+  if (!admin) {
+    return res
+      .status(401)
+      .json(new ApiResponse(401, null, "No admin found for this email", false));
+  }
+
+  if (
+    admin.role === "super_admin" ||
+    admin.role === "admin" ||
+    admin.role === "sub_admin"
+  ) {
+    req.admin = admin;
+    console.log(admin, "admin");
+    next();
+  } else {
+    return res
+      .status(401)
+      .json(
+        new ApiResponse(
+          401,
+          null,
+          "You are not authorized to access this resource",
+          false
+        )
+      );
+  }
+};
+
 const authenticateRole =
   (allowedRoles = []) =>
   async (req, res, next) => {
@@ -45,4 +79,5 @@ module.exports = {
     "sub_admin",
     "super_admin",
   ]),
+  authenticateRoleWithoutToken,
 };

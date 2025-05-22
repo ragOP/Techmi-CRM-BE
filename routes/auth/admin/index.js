@@ -10,11 +10,15 @@ const {
   registerSubAdmin,
   exportAdmins,
   getAdminById,
+  forgotPassword,
+  resetPassword,
 } = require("../../../controllers/auth/admin/index");
 const {
   admin,
   superAdmin,
   adminOrSuperAdmin,
+  adminOrSubAdminOrSuperAdmin,
+  authenticateRoleWithoutToken,
 } = require("../../../middleware/auth/adminMiddleware");
 
 const router = express.Router();
@@ -24,6 +28,8 @@ router.post("/register", registerAdmin);
 router.post("/login", loginAdmin);
 router.get("/sub-admin", admin, getAllSubAdmins);
 router.post("/sub-admin", admin, registerSubAdmin);
+router.post("/forgot-password", authenticateRoleWithoutToken, forgotPassword);
+router.post("/reset-password/:token", resetPassword);
 router.get("/export", superAdmin, exportAdmins);
 router.get("/:id", superAdmin, getAdminById);
 router.patch("/:id", adminOrSuperAdmin, updateAdmin);

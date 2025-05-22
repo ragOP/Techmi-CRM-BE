@@ -3,7 +3,10 @@ const HSNCodeService = require("../../services/hsn_code/index.js");
 const ApiResponse = require("../../utils/ApiResponse.js");
 
 const getAllHSNCodes = asyncHandler(async (req, res) => {
-  const { start_date, end_date } = req.query;
+  const { start_date, end_date, search = "" } = req.query;
+
+  const trimmedSearch = search ? search?.trim() : "";
+
   const query = {
     ...(start_date || end_date
       ? {
@@ -11,6 +14,14 @@ const getAllHSNCodes = asyncHandler(async (req, res) => {
             ...(start_date && { $gte: new Date(start_date) }),
             ...(end_date && { $lte: new Date(end_date) }),
           },
+        }
+      : {}),
+    ...(trimmedSearch
+      ? {
+          $or: [
+            { hsn_code: { $regex: trimmedSearch, $options: "i" } },
+            { description: { $regex: trimmedSearch, $options: "i" } },
+          ],
         }
       : {}),
   };

@@ -8,6 +8,7 @@ const User = require("../../../models/userModel");
 const ApiResponse = require("../../../utils/ApiResponse");
 const { generateAccessToken } = require("../../../utils/auth");
 const { uploadPDF } = require("../../../utils/upload");
+const { sendEmail } = require("../../../helpers/email");
 
 const getAllUsers = asyncHandler(async (req, res) => {
   const superAdminId = req.admin._id;
@@ -257,6 +258,147 @@ const exportUsers = asyncHandler(async (req, res) => {
     );
 });
 
+const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res
+      .status(404)
+      .json(new ApiResponse(404, null, "User not found", false));
+  }
+
+  try {
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "15m",
+    });
+
+    const resetPasswordUrl = `${process.env.FRONTEND_URL}/reset-password/${token}?email=${user.email}`;
+
+    const emailOptions = {
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: "Reset Password",
+      html: `
+        <!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Password Reset</title>
+  </head>
+  <body style="margin:0; padding:0; font-family:Arial, sans-serif; background-color:#f4f4f4;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f4; padding: 40px 0;">
+      <tr>
+        <td align="center">
+          <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff; padding: 30px; border-radius: 8px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+            <tr>
+              <td align="left" style="padding-bottom: 20px;">
+                <h2 style="color: #333333; margin: 0;">Hello ${user.name},</h2>
+              </td>
+            </tr>
+            <tr>
+              <td align="left" style="color: #555555; font-size: 16px; line-height: 1.6;">
+                <p>We received a request to reset your password. You can reset it by clicking the button below:</p>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding: 20px 0;">
+                <a href="${resetPasswordUrl}" style="background-color: #007BFF; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-size: 16px; display: inline-block;">Reset Password</a>
+              </td>
+            </tr>
+            <tr>
+              <td align="left" style="color: #555555; font-size: 16px; line-height: 1.6;">
+                <p>If you didn't request a password reset, please disregard this email. Your account is safe.</p>
+                <p>If you have any questions, feel free to contact our support team.</p>
+              </td>
+            </tr>
+            <tr>
+              <td align="left" style="padding-top: 30px; color: #555555; font-size: 16px;">
+                <p>Best regards,</p>
+                <p><strong>The ${process.env.APP_NAME} Team</strong></p>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding-top: 40px; font-size: 12px; color: #999999;">
+                <p>&copy; ${new Date().getFullYear()} ${
+        process.env.APP_NAME
+      }. All rights reserved.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+
+      `,
+    };
+
+    await sendEmail(emailOptions);
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          null,
+          "Password reset email sent successfully",
+          true
+        )
+      );
+  } catch (error) {
+    return res
+      .status(500)
+      .json(
+        new ApiResponse(
+          500,
+          null,
+          `Failed to send password reset email: ${error.message}`,
+          false
+        )
+      );
+  }
+});
+
+const resetPassword = asyncHandler(async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res
+        .status(404)
+        .json(new ApiResponse(404, null, "User not found", false));
+    }
+
+    user.password = password;
+    await user.save();
+
+    res.json(new ApiResponse(200, null, "Password reset successfully", true));
+  } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      return res
+        .status(401)
+        .json(
+          new ApiResponse(
+            401,
+            null,
+            "Password reset link has expired. Please request a new one.",
+            false
+          )
+        );
+    }
+    return res
+      .status(401)
+      .json(new ApiResponse(401, null, "Invalid or malformed token", false));
+  }
+});
+
 module.exports = {
   getAllUsers,
   registerUser,
@@ -266,4 +408,6 @@ module.exports = {
   getUserById,
   getUsersByRole,
   exportUsers,
+  forgotPassword,
+  resetPassword,
 };

@@ -10,6 +10,7 @@ const {
   registerSubAdmin,
   exportAdmins,
   getAdminById,
+  forgotPassword,
 } = require("../../../controllers/auth/admin/index");
 const {
   admin,
@@ -24,6 +25,7 @@ router.post("/register", registerAdmin);
 router.post("/login", loginAdmin);
 router.get("/sub-admin", admin, getAllSubAdmins);
 router.post("/sub-admin", admin, registerSubAdmin);
+router.post("/forgot-password", forgotPassword);
 router.get("/export", superAdmin, exportAdmins);
 router.get("/:id", superAdmin, getAdminById);
 router.patch("/:id", adminOrSuperAdmin, updateAdmin);

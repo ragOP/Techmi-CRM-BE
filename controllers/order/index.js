@@ -1,6 +1,7 @@
 const fs = require("fs").promises;
 const os = require("os");
 const path = require("path");
+const puppeteer = require("puppeteer"); 
 const { asyncHandler } = require("../../common/asyncHandler");
 const ApiResponse = require("../../utils/ApiResponse");
 const mongoose = require("mongoose");
@@ -14,6 +15,7 @@ const Services = require("../../models/servicesModel");
 const { uploadPDF } = require("../../utils/upload");
 const { convertToXLSX } = require("../../helpers/products/convertToXSLV");
 const { convertToCSV } = require("../../helpers/products/convertToCSV");
+const { sendEmail } = require("../../helpers/email");
 
 const getAllOrders = asyncHandler(async (req, res) => {
   const adminId = req.admin._id;
@@ -189,7 +191,9 @@ const getOrderOverview = asyncHandler(async (req, res) => {
 
       if (!product || !product.category) continue;
 
-      const matchesCategory = serviceCategoryIds.includes(product.category?.[0]?._id?.toString?.());
+      const matchesCategory = serviceCategoryIds.includes(
+        product.category?.[0]?._id?.toString?.()
+      );
       if (matchesCategory) {
         includeOrder = true;
         break;
@@ -645,7 +649,7 @@ const exportOrders = asyncHandler(async (req, res) => {
     search = "",
     start_date,
     end_date,
-    fileType = "xlsx"
+    fileType = "xlsx",
   } = req.query;
 
   try {
@@ -719,28 +723,32 @@ const exportOrders = asyncHandler(async (req, res) => {
 
     // Populate the necessary fields
     const orders = await Order.find(query)
-      .populate('items.product')
-      .populate('customer')
+      .populate("items.product")
+      .populate("customer")
       .sort({ createdAt: -1 })
       .lean();
 
     const serializedOrders = orders.map((order) => {
       return {
-        id: order._id?.toString() || '',
-        orderNumber: order.orderNumber || '',
-        customerName: order.customer?.name || '',
-        customerEmail: order.customer?.email || '',
-        customerPhone: order.customer?.phone || '',
-        items: (order.items || []).map(item => ({
-          productName: item.product?.name || 'N/A',
+        id: order._id?.toString() || "",
+        orderNumber: order.orderNumber || "",
+        customerName: order.customer?.name || "",
+        customerEmail: order.customer?.email || "",
+        customerPhone: order.customer?.phone || "",
+        items: (order.items || []).map((item) => ({
+          productName: item.product?.name || "N/A",
           quantity: item.quantity || 0,
-          price: item.price || 0
+          price: item.price || 0,
         })),
         totalAmount: order.totalAmount || 0,
-        status: order.status || '',
-        paymentStatus: order.paymentStatus || '',
-        createdAt: order.createdAt ? new Date(order.createdAt).toISOString() : '',
-        updatedAt: order.updatedAt ? new Date(order.updatedAt).toISOString() : ''
+        status: order.status || "",
+        paymentStatus: order.paymentStatus || "",
+        createdAt: order.createdAt
+          ? new Date(order.createdAt).toISOString()
+          : "",
+        updatedAt: order.updatedAt
+          ? new Date(order.updatedAt).toISOString()
+          : "",
       };
     });
 
@@ -750,7 +758,7 @@ const exportOrders = asyncHandler(async (req, res) => {
 
     if (fileType.toLowerCase() === "csv") {
       // Flatten the items array for CSV export
-      const flattenedOrders = serializedOrders.map(order => {
+      const flattenedOrders = serializedOrders.map((order) => {
         const flatOrder = {
           id: order.id,
           orderNumber: order.orderNumber,
@@ -762,9 +770,9 @@ const exportOrders = asyncHandler(async (req, res) => {
           paymentStatus: order.paymentStatus,
           createdAt: order.createdAt,
           updatedAt: order.updatedAt,
-          products: order.items.map(item => item.productName).join(', '),
-          quantities: order.items.map(item => item.quantity).join(', '),
-          prices: order.items.map(item => item.price).join(', ')
+          products: order.items.map((item) => item.productName).join(", "),
+          quantities: order.items.map((item) => item.quantity).join(", "),
+          prices: order.items.map((item) => item.price).join(", "),
         };
         return flatOrder;
       });
@@ -774,7 +782,8 @@ const exportOrders = asyncHandler(async (req, res) => {
       mimeType = "text/csv";
     } else if (fileType.toLowerCase() === "xlsx") {
       buffer = convertToXLSX(serializedOrders);
-      mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+      mimeType =
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     } else {
       return res
         .status(400)
@@ -789,21 +798,19 @@ const exportOrders = asyncHandler(async (req, res) => {
     // Upload to Cloudinary
     const url = await uploadPDF(tempFilePath, "exports");
 
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          { 
-            url, 
-            mimeType, 
-            filename,
-            total: orders.length 
-          },
-          "Orders exported and uploaded successfully",
-          true
-        )
-      );
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          url,
+          mimeType,
+          filename,
+          total: orders.length,
+        },
+        "Orders exported and uploaded successfully",
+        true
+      )
+    );
   } catch (error) {
     console.error("Error exporting orders:", error);
     return res
@@ -811,6 +818,355 @@ const exportOrders = asyncHandler(async (req, res) => {
       .json(new ApiResponse(500, null, "Server error", false));
   }
 });
+
+const generateOrderBill = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const { user } = req;
+
+  if (!user) {
+    return res
+      .status(401)
+      .json(new ApiResponse(401, null, "Unauthorized", false));
+  }
+  const order = await Order.findById(id).populate("items.product");
+
+  if (!order) {
+    return res
+      .status(404)
+      .json(new ApiResponse(404, null, "Order not found", false));
+  }
+  const { name, email } = user;
+  const {
+    items,
+    totalAmount,
+    status,
+    paymentStatus,
+    createdAt,
+    _id,
+    address,
+    cashfree_order,
+  } = order;
+  const billHTML = `
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Order Bill</title>
+    <style>
+      body { 
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.5;
+        color: #2d3436;
+        margin: 0;
+        padding: 0;
+        background-color: #ffffff;
+      }
+      .container { 
+        max-width: 750px;
+        margin: 20px auto;
+        padding: 30px;
+        background-color: #ffffff;
+      }
+      .header { 
+        text-align: center;
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #dfe6e9;
+      }
+      .logo {
+        margin-bottom: 15px;
+        font-size: 20px;
+        color: #2d3436;
+        font-weight: 600;
+      }
+      .header h1 {
+        color: #2d3436;
+        margin: 0 0 8px 0;
+        font-size: 24px;
+        font-weight: 600;
+      }
+      .header p {
+        color: #636e72;
+        margin: 4px 0;
+        font-size: 14px;
+      }
+      .order-info {
+        margin-bottom: 25px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+      }
+      .order-info h3 {
+        color: #2d3436;
+        margin-top: 0;
+        margin-bottom: 12px;
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .order-info p {
+        margin: 6px 0;
+        color: #636e72;
+        font-size: 14px;
+      }
+      .items-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 25px;
+      }
+      .items-table th {
+        background-color: #f8f9fa;
+        color: #2d3436;
+        padding: 10px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 14px;
+        border-bottom: 1px solid #dfe6e9;
+      }
+      .items-table td {
+        padding: 10px;
+        border-bottom: 1px solid #dfe6e9;
+        color: #636e72;
+        font-size: 14px;
+      }
+      .items-table tr:last-child td {
+        border-bottom: none;
+      }
+      .total {
+        text-align: right;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        margin-top: 15px;
+      }
+      .total p {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: #2d3436;
+      }
+      .footer {
+        margin-top: 30px;
+        padding-top: 15px;
+        border-top: 1px solid #dfe6e9;
+        text-align: center;
+        color: #636e72;
+        font-size: 12px;
+      }
+      .status-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        background-color: #e8f5e9;
+        color: #2e7d32;
+      }
+      .payment-info {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-left: 2px solid #2d3436;
+        margin: 8px 0;
+        font-size: 14px;
+      }
+      .section-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #2d3436;
+        margin: 15px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="logo">CRM</div>
+        <h1>Invoice</h1>
+        <p>#${_id}</p>
+        <p>${new Date(createdAt).toLocaleDateString("en-IN", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })}</p>
+      </div>
+      
+      <div class="order-info">
+        <h3>Customer Details</h3>
+        <p><strong>Name:</strong> ${address.name}</p>
+        <p><strong>Phone:</strong> ${address.mobile}</p>
+        <p><strong>Shipping Address:</strong> ${address.landmark}, ${address.locality}, ${address.address}, ${address.city}, ${address.state} - ${address.pincode}</p>
+        <p><strong>Status:</strong> <span class="status-badge">${status}</span></p>
+        <div class="payment-info">
+          <p><strong>Payment ID:</strong> ${cashfree_order.id}</p>
+        </div>
+      </div>
+
+      <div class="section-title">Order Summary</div>
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Qty</th>
+            <th>Price</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items
+            .map(
+              (item) => `
+            <tr>
+              <td>${item.product.name}</td>
+              <td>${item.quantity}</td>
+              <td>₹${item.product.price.toLocaleString("en-IN")}</td>
+              <td>₹${(item.quantity * item.product.price).toLocaleString(
+                "en-IN"
+              )}</td>
+            </tr>
+          `
+            )
+            .join("")}
+        </tbody>
+      </table>
+
+      <div class="total">
+        <p>Total: ₹${totalAmount.toLocaleString("en-IN")}</p>
+      </div>
+
+      <div class="footer">
+        <p>Thank you for your business</p>
+        <p>For support: support@techmicrm.com</p>
+        <p>&copy; ${new Date().getFullYear()} CRM</p>
+      </div>
+    </div>
+  </body>
+</html>
+`;
+
+  const tempDir = os.tmpdir();
+  const htmlFilePath = path.join(tempDir, `order_bill_${_id}.html`);
+  const pdfFilePath = path.join(tempDir, `order_bill_${_id}.pdf`);
+
+  await fs.writeFile(htmlFilePath, billHTML, "utf8");
+
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  await page.setContent(billHTML, { waitUntil: "networkidle0" });
+  await page.pdf({
+    path: pdfFilePath,
+    format: "A4",
+    printBackground: true,
+  });
+  await browser.close();
+
+  const pdfUrl = await uploadPDF(pdfFilePath, "bills");
+
+  console.log(pdfUrl);
+
+  const emailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: `Order Invoice - #${_id}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { 
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              line-height: 1.6;
+              color: #333;
+            }
+            .container {
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+            }
+            .logo {
+              font-size: 24px;
+              color: #2c3e50;
+              font-weight: bold;
+              margin-bottom: 20px;
+            }
+            .button {
+              display: inline-block;
+              padding: 12px 24px;
+              background-color: #2c3e50;
+              color: #ffffff;
+              text-decoration: none;
+              border-radius: 5px;
+              margin: 20px 0;
+            }
+            .details {
+              background-color: #f8f9fa;
+              padding: 20px;
+              border-radius: 5px;
+              margin: 20px 0;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 30px;
+              padding-top: 20px;
+              border-top: 1px solid #eee;
+              color: #666;
+              font-size: 14px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="logo">TECHMI CRM</div>
+            </div>
+            
+            <p>Dear ${address.name},</p>
+            
+            <p>Thank you for your order. Your invoice has been generated and is ready for your review.</p>
+            
+            <div style="text-align: center;">
+              <a href="${pdfUrl}" class="button" style="color: #ffffff;">View Invoice</a>
+            </div>
+
+            <div class="details">
+              <h3>Order Summary</h3>
+              <p><strong>Order Number:</strong> ${_id}</p>
+              <p><strong>Total Amount:</strong> ₹${totalAmount.toLocaleString(
+                "en-IN"
+              )}</p>
+              <p><strong>Status:</strong> ${status}</p>
+              <p><strong>Payment ID:</strong> ${cashfree_order.id}</p>
+            </div>
+
+            <p>If you have any questions or concerns about your order, please don't hesitate to contact our customer support team.</p>
+
+            <div class="footer">
+              <p>Best regards,<br>Techmi CRM Team</p>
+              <p>&copy; ${new Date().getFullYear()} Techmi CRM. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+    attachments: [{ path: pdfUrl }],
+  };
+  await sendEmail(emailOptions);
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { billUrl: pdfUrl },
+        "Order bill generated and sent successfully",
+        true
+      )
+    );
+});
+
 module.exports = {
   createOrder,
   getOrderHistory,
@@ -818,5 +1174,6 @@ module.exports = {
   updateOrder,
   getOrderById,
   getOrderOverview,
-  exportOrders
+  exportOrders,
+  generateOrderBill,
 };

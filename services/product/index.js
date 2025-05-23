@@ -64,7 +64,7 @@ const updateProduct = async (id, data, adminId) => {
 
     if (inventory) {
       await InventoryService.updateInventory(inventory._id, {
-        quantity: quantity,
+        quantity: Number(inventory.quantity) + Number(quantity),
         last_modified_by: adminId,
         last_modified_reason: "Stock updated on product update",
       });

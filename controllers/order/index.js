@@ -14,6 +14,8 @@ const Services = require("../../models/servicesModel");
 const { uploadPDF } = require("../../utils/upload");
 const { convertToXLSX } = require("../../helpers/products/convertToXSLV");
 const { convertToCSV } = require("../../helpers/products/convertToCSV");
+const Transaction = require("../../models/transactionModel");
+const Inventory = require("../../models/inventoryModel");
 
 const getAllOrders = asyncHandler(async (req, res) => {
   const adminId = req.admin._id;
@@ -189,7 +191,9 @@ const getOrderOverview = asyncHandler(async (req, res) => {
 
       if (!product || !product.category) continue;
 
-      const matchesCategory = serviceCategoryIds.includes(product.category?.[0]?._id?.toString?.());
+      const matchesCategory = serviceCategoryIds.includes(
+        product.category?.[0]?._id?.toString?.()
+      );
       if (matchesCategory) {
         includeOrder = true;
         break;
@@ -390,7 +394,21 @@ const createOrder = asyncHandler(async (req, res) => {
     for (const cartItem of cart.items) {
       const product = await Product.findById(cartItem.product).session(session);
       if (!product) throw new Error(`Product ${cartItem.product} not found`);
-      if (!product.instock) throw new Error(`${product.name} is out of stock`);
+      // if (!product.instock) throw new Error(`${product.name} is out of stock`);
+
+      const inventory = await Inventory.findOne({
+        product_id: product._id,
+      }).session(session);
+      if (!inventory || inventory.quantity < cartItem.quantity) {
+        throw new Error(
+          `${product.name} does not have enough stock. Available: ${
+            inventory ? inventory.quantity : 0
+          }`
+        );
+      }
+
+      inventory.quantity -= cartItem.quantity;
+      await inventory.save({ session });
 
       let currentPrice;
 
@@ -499,12 +517,25 @@ const createOrder = asyncHandler(async (req, res) => {
       cashfree_order: {
         id: orderId,
       },
-      // originalAmount: totalAmount,
-      // discountAmount,
     });
 
     // Save order and clear cart
     await order.save({ session });
+    await Transaction.create(
+      [
+        {
+          order: order._id,
+          user: order.user,
+          type: "payment",
+          amount: order.discountedPriceAfterCoupon,
+          payment_method: "cashfree",
+          status: "success",
+          transaction_id: order.cashfree_order?.id || null,
+        },
+      ],
+      { session }
+    );
+
     cart.items = [];
     await cart.save({ session });
 
@@ -645,7 +676,7 @@ const exportOrders = asyncHandler(async (req, res) => {
     search = "",
     start_date,
     end_date,
-    fileType = "xlsx"
+    fileType = "xlsx",
   } = req.query;
 
   try {
@@ -719,28 +750,32 @@ const exportOrders = asyncHandler(async (req, res) => {
 
     // Populate the necessary fields
     const orders = await Order.find(query)
-      .populate('items.product')
-      .populate('customer')
+      .populate("items.product")
+      .populate("customer")
       .sort({ createdAt: -1 })
       .lean();
 
     const serializedOrders = orders.map((order) => {
       return {
-        id: order._id?.toString() || '',
-        orderNumber: order.orderNumber || '',
-        customerName: order.customer?.name || '',
-        customerEmail: order.customer?.email || '',
-        customerPhone: order.customer?.phone || '',
-        items: (order.items || []).map(item => ({
-          productName: item.product?.name || 'N/A',
+        id: order._id?.toString() || "",
+        orderNumber: order.orderNumber || "",
+        customerName: order.customer?.name || "",
+        customerEmail: order.customer?.email || "",
+        customerPhone: order.customer?.phone || "",
+        items: (order.items || []).map((item) => ({
+          productName: item.product?.name || "N/A",
           quantity: item.quantity || 0,
-          price: item.price || 0
+          price: item.price || 0,
         })),
         totalAmount: order.totalAmount || 0,
-        status: order.status || '',
-        paymentStatus: order.paymentStatus || '',
-        createdAt: order.createdAt ? new Date(order.createdAt).toISOString() : '',
-        updatedAt: order.updatedAt ? new Date(order.updatedAt).toISOString() : ''
+        status: order.status || "",
+        paymentStatus: order.paymentStatus || "",
+        createdAt: order.createdAt
+          ? new Date(order.createdAt).toISOString()
+          : "",
+        updatedAt: order.updatedAt
+          ? new Date(order.updatedAt).toISOString()
+          : "",
       };
     });
 
@@ -750,7 +785,7 @@ const exportOrders = asyncHandler(async (req, res) => {
 
     if (fileType.toLowerCase() === "csv") {
       // Flatten the items array for CSV export
-      const flattenedOrders = serializedOrders.map(order => {
+      const flattenedOrders = serializedOrders.map((order) => {
         const flatOrder = {
           id: order.id,
           orderNumber: order.orderNumber,
@@ -762,9 +797,9 @@ const exportOrders = asyncHandler(async (req, res) => {
           paymentStatus: order.paymentStatus,
           createdAt: order.createdAt,
           updatedAt: order.updatedAt,
-          products: order.items.map(item => item.productName).join(', '),
-          quantities: order.items.map(item => item.quantity).join(', '),
-          prices: order.items.map(item => item.price).join(', ')
+          products: order.items.map((item) => item.productName).join(", "),
+          quantities: order.items.map((item) => item.quantity).join(", "),
+          prices: order.items.map((item) => item.price).join(", "),
         };
         return flatOrder;
       });
@@ -774,7 +809,8 @@ const exportOrders = asyncHandler(async (req, res) => {
       mimeType = "text/csv";
     } else if (fileType.toLowerCase() === "xlsx") {
       buffer = convertToXLSX(serializedOrders);
-      mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+      mimeType =
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     } else {
       return res
         .status(400)
@@ -789,21 +825,19 @@ const exportOrders = asyncHandler(async (req, res) => {
     // Upload to Cloudinary
     const url = await uploadPDF(tempFilePath, "exports");
 
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          { 
-            url, 
-            mimeType, 
-            filename,
-            total: orders.length 
-          },
-          "Orders exported and uploaded successfully",
-          true
-        )
-      );
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          url,
+          mimeType,
+          filename,
+          total: orders.length,
+        },
+        "Orders exported and uploaded successfully",
+        true
+      )
+    );
   } catch (error) {
     console.error("Error exporting orders:", error);
     return res
@@ -818,5 +852,5 @@ module.exports = {
   updateOrder,
   getOrderById,
   getOrderOverview,
-  exportOrders
+  exportOrders,
 };

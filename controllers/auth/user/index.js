@@ -113,7 +113,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
 const updateUser = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { name, email, role } = req.body;
+  const { name, email, role, is_active } = req.body;
 
   const user = await User.findById(id);
   if (!user) {
@@ -125,6 +125,7 @@ const updateUser = asyncHandler(async (req, res) => {
   if (name) user.name = name;
   if (email) user.email = email;
   if (role) user.role = role;
+  if (is_active) user.is_active = role;
 
   await user.save();
   const updatedUser = await User.findById(id);

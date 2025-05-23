@@ -1,6 +1,7 @@
 const fs = require("fs").promises;
 const os = require("os");
 const path = require("path");
+const jwt = require("jsonwebtoken");
 const { asyncHandler } = require("../../../common/asyncHandler");
 const { convertToCSV } = require("../../../helpers/products/convertToCSV");
 const { convertToXLSX } = require("../../../helpers/products/convertToXSLV");
@@ -264,7 +265,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email });
   if (!user) {
     return res
-      .status(404)
+      .status(200)
       .json(new ApiResponse(404, null, "User not found", false));
   }
 
@@ -273,7 +274,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
       expiresIn: "15m",
     });
 
-    const resetPasswordUrl = `${process.env.FRONTEND_URL}/reset-password/${token}?email=${user.email}`;
+    const resetPasswordUrl = `${process.env.WEB_FRONTEND_URL}/reset-password/${token}?email=${user.email}`;
 
     const emailOptions = {
       from: process.env.EMAIL_USER,
@@ -369,6 +370,19 @@ const resetPassword = asyncHandler(async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const user = await User.findById(decoded.id);
+
+    if (user.updatedAt.getTime() > decoded.iat * 1000) {
+      return res
+        .status(401)
+        .json(
+          new ApiResponse(
+            401,
+            null,
+            "Password reset link has expired. Please request a new one.",
+            false
+          )
+        );
+    }
 
     if (!user) {
       return res

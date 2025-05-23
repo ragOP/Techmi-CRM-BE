@@ -7,6 +7,7 @@ const getAllServices = async ({
   per_page,
   start_date,
   end_date,
+  is_active
 }) => {
   const filters = {
     ...(search && {
@@ -15,6 +16,7 @@ const getAllServices = async ({
         $options: "i",
       },
     }),
+    ...(is_active && { is_active }),
     ...(start_date || end_date
       ? {
           createdAt: {
@@ -24,7 +26,6 @@ const getAllServices = async ({
         }
       : {}),
   };
-  console.log("filters", filters);
   return await ServiceRepository.getAllServices({ filters, page, per_page });
 };
 

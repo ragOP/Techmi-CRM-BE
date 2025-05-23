@@ -514,6 +514,8 @@ const createOrder = asyncHandler(async (req, res) => {
 
     await session.commitTransaction();
 
+    await generateOrderBill(order, req.user);
+
     return res
       .status(201)
       .json(new ApiResponse(201, order, "Order created successfully", true));
@@ -819,10 +821,8 @@ const exportOrders = asyncHandler(async (req, res) => {
   }
 });
 
-const generateOrderBill = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-
-  const { user } = req;
+const generateOrderBill = asyncHandler(async (newOrder, user) => {
+  const { id } = newOrder;
 
   if (!user) {
     return res
@@ -836,12 +836,11 @@ const generateOrderBill = asyncHandler(async (req, res) => {
       .status(404)
       .json(new ApiResponse(404, null, "Order not found", false));
   }
-  const { name, email } = user;
+  const { email } = user;
   const {
     items,
     totalAmount,
     status,
-    paymentStatus,
     createdAt,
     _id,
     address,
@@ -1061,8 +1060,6 @@ const generateOrderBill = asyncHandler(async (req, res) => {
 
   const pdfUrl = await uploadPDF(pdfFilePath, "bills");
 
-  console.log(pdfUrl);
-
   const emailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
@@ -1155,16 +1152,7 @@ const generateOrderBill = asyncHandler(async (req, res) => {
     attachments: [{ path: pdfUrl }],
   };
   await sendEmail(emailOptions);
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        { billUrl: pdfUrl },
-        "Order bill generated and sent successfully",
-        true
-      )
-    );
+  return true;
 });
 
 module.exports = {

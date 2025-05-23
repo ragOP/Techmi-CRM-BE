@@ -16,5 +16,6 @@ router.post("/", user, OrderController.createOrder);
 router.get("/history", user, OrderController.getOrderHistory);
 router.patch("/:id", adminOrSuperAdmin, OrderController.updateOrder);
 router.get("/:id", adminOrSuperAdmin, OrderController.getOrderById);
+router.get("/generate-order-bill/:id", user, OrderController.generateOrderBill);
 
 module.exports = router;

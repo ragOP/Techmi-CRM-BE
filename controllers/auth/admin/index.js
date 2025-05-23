@@ -454,6 +454,19 @@ const resetPassword = asyncHandler(async (req, res) => {
 
     const admin = await Admin.findById(decoded.id);
 
+    if (admin.updatedAt.getTime() > decoded.iat * 1000) {
+      return res
+        .status(401)
+        .json(
+          new ApiResponse(
+            401,
+            null,
+            "Password reset link has expired. Please request a new one.",
+            false
+          )
+        );
+    }
+
     if (!admin) {
       return res
         .status(404)

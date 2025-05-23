@@ -1,8 +1,9 @@
-const { default: mongoose } = require("mongoose");
+const mongoose = require("mongoose");
 const Category = require("../../models/categoryModel.js");
 const ProductsRepository = require("../../repositories/product/index.js");
 const Product = require("../../models/productsModel.js");
 const InventoryService = require("../inventory/index.js");
+const InventoryHistoryService = require("../inventory_history/index.js");
 
 const getAllProducts = async ({
   page,
@@ -39,48 +40,129 @@ const getProductById = async (id) => {
 };
 
 const createProduct = async (data, adminId) => {
-  const { quantity, ...productData } = data;
-  const product = await ProductsRepository.createProduct(productData);
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { quantity, ...productData } = data;
+    const product = await ProductsRepository.createProduct(productData, {
+      session,
+    });
 
-  await InventoryService.createInventory({
-    product_id: product._id,
-    quantity: quantity || 0,
-    last_modified_by: adminId,
-    last_modified_reason: "Initial stock on product creation",
-    last_restocked_at: new Date(),
-    low_stock_threshold: 5,
-  });
+    const inventory = await InventoryService.createInventory(
+      {
+        product_id: product._id,
+        quantity: quantity || 0,
+        last_modified_by: adminId,
+        last_modified_reason: "Initial stock on product creation",
+        last_restocked_at: new Date(),
+        low_stock_threshold: 5,
+      },
+      session
+    );
 
-  return product;
+    await InventoryHistoryService.createHistory(
+      {
+        product_id: product._id,
+        inventory_id: inventory._id,
+        change: Number(quantity) || 0,
+        old_quantity: 0,
+        new_quantity: Number(quantity) || 0,
+        action: "add",
+        reason: "Initial stock on product creation",
+        changed_by: adminId,
+      },
+      session
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+    return product;
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
 };
 
 const updateProduct = async (id, data, adminId) => {
-  const { quantity, ...productData } = data;
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { quantity, ...productData } = data;
+    const product = await ProductsRepository.updateProduct(id, productData, {
+      session,
+    });
 
-  const product = await ProductsRepository.updateProduct(id, productData);
+    if (quantity !== undefined) {
+      const inventory = await InventoryService.getInventoryByProductId(
+        id,
+        session
+      );
 
-  if (quantity !== undefined) {
-    const inventory = await InventoryService.getInventoryByProductId(id);
+      if (inventory) {
+        const oldQty = Number(inventory.quantity);
+        const newQty = oldQty + Number(quantity);
 
-    if (inventory) {
-      await InventoryService.updateInventory(inventory._id, {
-        quantity: Number(inventory.quantity) + Number(quantity),
-        last_modified_by: adminId,
-        last_modified_reason: "Stock updated on product update",
-      });
-    } else {
-      await InventoryService.createInventory({
-        product_id: product._id,
-        quantity: quantity,
-        last_modified_by: adminId,
-        last_modified_reason: "Stock created on product update",
-        last_restocked_at: new Date(),
-        low_stock_threshold: 5,
-      });
+        await InventoryService.updateInventory(
+          inventory._id,
+          {
+            quantity: newQty,
+            last_modified_by: adminId,
+            last_modified_reason: "Stock updated on product update",
+          },
+          session
+        );
+
+        await InventoryHistoryService.createHistory(
+          {
+            product_id: product._id,
+            inventory_id: inventory._id,
+            change: Number(quantity),
+            old_quantity: oldQty,
+            new_quantity: newQty,
+            action: Number(quantity) > 0 ? "add" : "remove",
+            reason: "Stock updated on product update",
+            changed_by: adminId,
+          },
+          session
+        );
+      } else {
+        const newInventory = await InventoryService.createInventory(
+          {
+            product_id: product._id,
+            quantity: quantity,
+            last_modified_by: adminId,
+            last_modified_reason: "Stock created on product update",
+            last_restocked_at: new Date(),
+            low_stock_threshold: 5,
+          },
+          session
+        );
+
+        await InventoryHistoryService.createHistory(
+          {
+            product_id: product._id,
+            inventory_id: newInventory._id,
+            change: Number(quantity),
+            old_quantity: 0,
+            new_quantity: Number(quantity),
+            action: "add",
+            reason: "Stock created on product update",
+            changed_by: adminId,
+          },
+          session
+        );
+      }
     }
-  }
 
-  return product;
+    await session.commitTransaction();
+    session.endSession();
+    return product;
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
 };
 
 const deleteProduct = async (id) => {

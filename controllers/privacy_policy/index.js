@@ -24,7 +24,7 @@ const getLatestPrivacyPolicy = async (req, res) => {
     if (!result) {
       return res.json(new ApiResponse(404, null, "Privacy Policy not found", false));
     }
-    res.json(new ApiResponse(200, result, "Privacy Policy fetched successfully", true));
+    res.json(new ApiResponse(200, result[0], "Privacy Policy fetched successfully", true));
 };
 
 module.exports = {

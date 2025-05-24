@@ -7,6 +7,10 @@ const {
 const router = express.Router();
 
 router.get(
+  "/users",
+  FaqController.getFaq
+);
+router.get(
   "/",
   adminOrSuperAdmin,
   FaqController.getFaq

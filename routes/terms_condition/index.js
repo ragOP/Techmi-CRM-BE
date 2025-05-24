@@ -13,6 +13,10 @@ router.post(
   TermsConditionController.createTermsCondition
 );
 router.get(
+  "/users",
+  TermsConditionController.getLatestTermsCondition
+);
+router.get(
   "/",
   adminOrSuperAdmin,
   TermsConditionController.getLatestTermsCondition

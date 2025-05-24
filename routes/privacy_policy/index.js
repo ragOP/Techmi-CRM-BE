@@ -12,6 +12,10 @@ router.post(
   PrivacyPolicyController.createPrivacyPolicy
 );
 router.get(
+  "/users",
+  PrivacyPolicyController.getLatestPrivacyPolicy
+);
+router.get(
   "/",
   adminOrSuperAdmin,
   PrivacyPolicyController.getLatestPrivacyPolicy

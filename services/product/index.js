@@ -18,6 +18,7 @@ const getAllProducts = async ({
   sort_by,
   start_date,
   end_date,
+  is_active
 }) => {
   return await ProductsRepository.getAllProducts({
     page,
@@ -32,6 +33,7 @@ const getAllProducts = async ({
     sort_by,
     start_date,
     end_date,
+    is_active
   });
 };
 

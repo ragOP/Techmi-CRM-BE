@@ -28,6 +28,7 @@ const getAllProducts = asyncHandler(async (req, res) => {
     sort_by = "created_at",
     start_date,
     end_date,
+    is_active = false,
   } = req.query;
 
   const products = await ProductsServices.getAllProducts({
@@ -43,6 +44,7 @@ const getAllProducts = asyncHandler(async (req, res) => {
     sort_by,
     start_date,
     end_date,
+    is_active
   });
   res.json(
     new ApiResponse(200, products, "Products fetched successfully", true)

@@ -17,6 +17,7 @@ const getAllProducts = async ({
   sort_by,
   start_date,
   end_date,
+  is_active,
 }) => {
   const skip = (page - 1) * per_page;
 
@@ -67,6 +68,10 @@ const getAllProducts = async ({
 
   if (is_best_seller) {
     filter.is_best_seller = is_best_seller;
+  }
+
+  if (is_active) {
+    filter.is_active = is_active;
   }
 
   if (search) {

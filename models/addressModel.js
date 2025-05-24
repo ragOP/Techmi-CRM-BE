@@ -37,6 +37,11 @@ const AddressSchema = new mongoose.Schema(
       required: true,
       maxlength: 100,
     },
+    state_code: {
+      type: String,
+      required: true,
+      maxlength: 10, 
+    },
     state: {
       type: String,
       required: true,

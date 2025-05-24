@@ -16,9 +16,15 @@ const deleteFaq = async (id) => {
   return await Faq.findByIdAndDelete(id);
 };
 
+const bulkUpdateFaq = async (bulkOperations) => {
+  if (bulkOperations.length === 0) return;
+  return await Faq.bulkWrite(bulkOperations);
+};
+
 module.exports = {
   getFaq,
   createFaq,
   updateFaq,
   deleteFaq,
+  bulkUpdateFaq
 };

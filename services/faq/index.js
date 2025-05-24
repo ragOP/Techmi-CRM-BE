@@ -20,9 +20,28 @@ const deleteFaq = async (id) => {
   return await repository.deleteFaq(id);
 };
 
+const bulkUpdateFaq = async (faqList) => {
+  if (faqList.length === 0) return;
+  const bulkOperations = faqList.map((faq) => ({
+    updateOne: {
+      filter: { _id: faq._id },
+      update: {
+        $set: {
+          question: faq.question,
+          answer: faq.answer,
+          created_by_admin: faq.created_by_admin,
+        },
+      },
+    },
+  }));
+
+  return await repository.bulkUpdateFaq(bulkOperations);
+};
+
 module.exports = {
   getFaq,
   createFaq,
   updateFaq,
   deleteFaq,
+  bulkUpdateFaq,
 };

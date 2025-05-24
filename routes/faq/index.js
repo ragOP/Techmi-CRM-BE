@@ -26,5 +26,10 @@ router.delete(
     adminOrSuperAdmin,
     FaqController.deleteFaq
 )
+router.put(
+  "/",
+  adminOrSuperAdmin,
+  FaqController.batchUpdateFaq
+)
 
 module.exports = router;

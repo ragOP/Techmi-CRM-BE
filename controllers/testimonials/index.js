@@ -8,9 +8,15 @@ const getAllTestimonials = asyncHandler(async (req, res) => {
   res.json(new ApiResponse(200, testimonials, "Testimonials fetched", true));
 });
 
+const getTestimonialById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const testimonial = await Testimonial.findById(id);
+  res.json(new ApiResponse(200, testimonial, "Testimonial fetched", true));
+});
+
 const createTestimonial = asyncHandler(async (req, res) => {
   let imageUrl = null;
-
+  console.log(req.body);
   if (req.file) {
     imageUrl = await uploadSingleFile(req.file.path, "uploads/images");
   } else if (
@@ -75,6 +81,7 @@ const deleteTestimonial = asyncHandler(async (req, res) => {
 
 module.exports = {
   getAllTestimonials,
+  getTestimonialById,
   createTestimonial,
   updateTestimonial,
   deleteTestimonial,

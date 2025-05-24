@@ -8,6 +8,7 @@ const { adminOrSuperAdmin } = require("../../middleware/auth/adminMiddleware");
 const upload = multer({ storage: storage });
 
 router.get("/", TestimonialsController.getAllTestimonials);
+router.get("/:id", TestimonialsController.getTestimonialById);
 
 router.post(
   "/",

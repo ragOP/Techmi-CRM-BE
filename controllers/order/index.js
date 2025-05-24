@@ -741,19 +741,17 @@ const createOrder = asyncHandler(async (req, res) => {
       let itemTaxRate = 0;
       let itemCessRate = 0;
       let hsn = null;
-      console.log("Fetching HSN code for product:", product);
+
       if (product.hsn_code) {
-        console.log("Fetching HSN code for product:", product.hsn_code);
         hsn = await HSNCode.findById(product.hsn_code);
       }
 
-      console.log("HSN code fetched:", hsn);
       if (hsn) {
         const shippingStateCode = address?.state_code || ORIGIN_STATE_CODE;
         if (shippingStateCode === ORIGIN_STATE_CODE) {
           itemTaxRate = (hsn.cgst_rate || 0) + (hsn.sgst_rate || 0);
         } else {
-          itemTaxRate = hsn.igst_rate || 0;
+          itemTaxRate = (hsn.igst_rate || 0) + (hsn.sgst_rate || 0);
         }
         itemCessRate = hsn.cess || 0;
       }

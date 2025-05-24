@@ -154,19 +154,19 @@ OrderSchema.set("toJSON", {
           dnd_discounted_price: item.product.dnd_discounted_price
             ? parseFloat(item.product.dnd_discounted_price.toString())
             : null,
-          tax_amount: item.tax_amount
-            ? parseFloat(item.tax_amount.toString())
-            : 0,
-          cess_amount: item.cess_amount
-            ? parseFloat(item.cess_amount.toString())
-            : 0,
-          total_amount: item.total_amount
-            ? parseFloat(item.total_amount.toString())
-            : 0,
-          coupon_discount: item.coupon_price
-            ? parseFloat(item.coupon_price.toString())
-            : 0,
         },
+        tax_amount: item.tax_amount
+          ? parseFloat(item.tax_amount.toString())
+          : 0,
+        cess_amount: item.cess_amount
+          ? parseFloat(item.cess_amount.toString())
+          : 0,
+        total_amount: item.total_amount
+          ? parseFloat(item.total_amount.toString())
+          : 0,
+        coupon_discount: item.coupon_price
+          ? parseFloat(item.coupon_price.toString())
+          : 0,
       }));
     }
 

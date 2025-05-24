@@ -164,8 +164,8 @@ OrderSchema.set("toJSON", {
         total_amount: item.total_amount
           ? parseFloat(item.total_amount.toString())
           : 0,
-        coupon_discount: item.coupon_price
-          ? parseFloat(item.coupon_price.toString())
+        coupon_discount: item.coupon_discount
+          ? parseFloat(item.coupon_discount.toString())
           : 0,
       }));
     }

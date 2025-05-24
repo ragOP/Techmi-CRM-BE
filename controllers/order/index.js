@@ -24,6 +24,7 @@ const ORIGIN_STATE_CODE = "GJ";
 
 const getAllOrders = asyncHandler(async (req, res) => {
   const adminId = req.admin._id;
+
   if (!adminId) {
     return res
       .status(401)
@@ -731,11 +732,16 @@ const createOrder = asyncHandler(async (req, res) => {
     for (const { cartItem, product, currentPrice, itemTotal } of itemTotals) {
       // Proportionally distribute coupon discount to this item
       let itemCouponDiscount = 0;
+
+      console.log(1111111111, discountedPrice, itemCouponDiscount);
+
       if (discountedPrice > 0 && couponDiscountAmount > 0) {
         itemCouponDiscount =
           (itemTotal / discountedPrice) * couponDiscountAmount;
       }
       const itemDiscountedAfterCoupon = itemTotal - itemCouponDiscount;
+
+      console.log(22222222222222, discountedPrice, itemCouponDiscount);
 
       // Tax/Cess calculation on coupon-adjusted price
       let itemTaxRate = 0;

@@ -18,6 +18,7 @@ const { convertToCSV } = require("../../helpers/products/convertToCSV");
 const { sendEmail } = require("../../helpers/email");
 const Inventory = require("../../models/inventoryModel");
 const Transaction = require("../../models/transactionModel");
+const HSNCode = require("../../models/hsncodeModel");
 
 const ORIGIN_STATE_CODE = "GJ";
 

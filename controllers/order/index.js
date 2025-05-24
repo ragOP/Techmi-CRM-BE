@@ -763,8 +763,6 @@ const createOrder = asyncHandler(async (req, res) => {
       totalTaxAmount += itemTaxAmount;
       totalCessAmount += itemCessAmount;
 
-      return
-
       orderItems.push({
         product: {
           _id: product._id,

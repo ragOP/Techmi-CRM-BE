@@ -33,6 +33,7 @@ const hsncodesRoutes = require("./routes/hsn_code/index.js");
 const mediaRoutes = require("./routes/media/index.js");
 const appBannerRoutes = require("./routes/app_banner/index.js");
 const transactionRoutes = require("./routes/transaction/index.js");
+const termsConditionRoutes = require("./routes/terms_condition/index.js");
 
 // Connect DB
 connectDB();
@@ -71,6 +72,7 @@ app.use("/api/hsn-codes", hsncodesRoutes);
 app.use("/api/media", mediaRoutes);
 app.use("/api/app-banner", appBannerRoutes);
 app.use("/api/transaction", transactionRoutes);
+app.use("/api/terms-condition", termsConditionRoutes);
 
 // Documentation (Development)
 app.use("/api-doc", swaggerUI.serve, swaggerUI.setup(swaggerSpec));

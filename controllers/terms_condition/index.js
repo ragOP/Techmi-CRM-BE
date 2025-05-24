@@ -24,7 +24,7 @@ const getLatestTermsCondition = async (req, res) => {
     if (!result) {
       return res.json(new ApiResponse(404, null, "Terms condition not found", false));
     }
-    res.json(new ApiResponse(200, result, "Terms condition fetched successfully", true));
+    res.json(new ApiResponse(200, result[0], "Terms condition fetched successfully", true));
 };
 
 module.exports = {

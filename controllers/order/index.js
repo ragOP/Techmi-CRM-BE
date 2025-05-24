@@ -1,7 +1,7 @@
 const fs = require("fs").promises;
 const os = require("os");
 const path = require("path");
-const puppeteer = require("puppeteer"); 
+const puppeteer = require("puppeteer");
 const { asyncHandler } = require("../../common/asyncHandler");
 const ApiResponse = require("../../utils/ApiResponse");
 const mongoose = require("mongoose");
@@ -17,6 +17,9 @@ const { convertToXLSX } = require("../../helpers/products/convertToXSLV");
 const { convertToCSV } = require("../../helpers/products/convertToCSV");
 const { sendEmail } = require("../../helpers/email");
 const Inventory = require("../../models/inventoryModel");
+const Transaction = require("../../models/transactionModel");
+
+const ORIGIN_STATE_CODE = "GJ";
 
 const getAllOrders = asyncHandler(async (req, res) => {
   const adminId = req.admin._id;
@@ -157,8 +160,6 @@ const getOrderOverview = asyncHandler(async (req, res) => {
         );
     }
   }
-
-  console.log("serviceCategoryIds", serviceCategoryIds);
 
   const orderFilter = {};
 
@@ -317,39 +318,292 @@ const validateId = (id, name) => {
   }
 };
 
+// const createOrder = asyncHandler(async (req, res) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const role = req.user.role;
+
+//     const { cartId, addressId, couponId, orderId, orderedBy, orderedForUser } =
+//       req.body;
+//     const userId = req.user._id;
+
+//     const currentUserId = orderedBy ? orderedForUser : userId;
+//     // Validate input IDs
+
+//     validateId(cartId, "cart");
+//     validateId(addressId, "address");
+//     validateId(couponId, "coupon");
+//     validateId(userId, "userId");
+
+//     if (orderedBy) {
+//       validateId(orderedBy, "orderedBy");
+//     }
+
+//     if (orderedForUser) {
+//       validateId(orderedForUser, "orderedForUser");
+//     }
+
+//     // Fetch and validate coupon
+//     let coupon = null;
+//     if (couponId) {
+//       coupon = await Coupon.findById(couponId).session(session);
+//       if (!coupon) throw new Error("Coupon not found");
+
+//       const now = new Date();
+//       if (!coupon.active) throw new Error("Coupon is inactive");
+//       if (now < coupon.startDate) throw new Error("Coupon not yet valid");
+//       if (now > coupon.endDate) throw new Error("Coupon expired");
+//       if (coupon.totalUseLimit !== null && coupon.totalUseLimit <= 0) {
+//         throw new Error("Coupon usage limit reached");
+//       }
+//     }
+
+//     // Validate cart
+//     const cart = await Cart.findOne({ _id: cartId, user: userId }).session(
+//       session
+//     );
+//     if (!cart) throw new Error("Cart not found");
+//     if (cart.items.length === 0) throw new Error("Cart is empty");
+
+//     // Validate address
+//     let address;
+
+//     if (orderedBy) {
+//       address = await Address.findOne({
+//         user: orderedForUser,
+//         isPrimary: true,
+//       }).session(session);
+
+//       if (!address) {
+//         throw new Error("No primary address found for the ordered user");
+//       }
+//     } else {
+//       address = await Address.findOne({
+//         _id: addressId,
+//         user: userId,
+//       }).session(session);
+//     }
+
+//     if (!address) throw new Error("Address not found");
+
+//     // Process cart items
+//     let totalAmount = 0;
+//     let discountedPrice = 0;
+//     let totalTaxAmount = 0;
+//     let totalCessAmount = 0;
+
+//     const orderItems = [];
+
+//     for (const cartItem of cart.items) {
+//       const product = await Product.findById(cartItem.product).session(session);
+//       if (!product) throw new Error(`Product ${cartItem.product} not found`);
+
+//       const inventory = await Inventory.findOne({
+//         product_id: product._id,
+//       }).session(session);
+//       if (!inventory || inventory.quantity < cartItem.quantity) {
+//         throw new Error(
+//           `${product.name} does not have enough stock. Available: ${
+//             inventory ? inventory.quantity : 0
+//           }`
+//         );
+//       }
+
+//       inventory.quantity -= cartItem.quantity;
+//       await inventory.save({ session });
+
+//       let currentPrice;
+
+//       if (role === "salesperson") {
+//         currentPrice =
+//           product.salesperson_discounted_price !== null
+//             ? product.salesperson_discounted_price
+//             : product.discounted_price !== null
+//             ? product.discounted_price
+//             : product.price;
+//       } else if (role === "dnd") {
+//         currentPrice =
+//           product.dnd_discounted_price !== null
+//             ? product.dnd_discounted_price
+//             : product.discounted_price !== null
+//             ? product.discounted_price
+//             : product.price;
+//       } else {
+//         currentPrice =
+//           product.discounted_price !== null
+//             ? product.discounted_price
+//             : product.price;
+//       }
+
+//       const withoutDiscountPrice =
+//         parseFloat(product.price.toString()) * cartItem.quantity;
+//       totalAmount += withoutDiscountPrice;
+
+//       const itemTotal = parseFloat(currentPrice.toString()) * cartItem.quantity;
+//       discountedPrice += itemTotal;
+
+//       let itemTaxRate = 0;
+//       let itemCessRate = 0;
+
+//       if (hsn) {
+//         const shippingStateCode = address.state_code;
+//         if (shippingStateCode === ORIGIN_STATE_CODE) {
+//           itemTaxRate = (hsn.cgst_rate || 0) + (hsn.sgst_rate || 0);
+//         } else {
+//           itemTaxRate = hsn.igst_rate || 0;
+//         }
+//         itemCessRate = hsn.cess || 0;
+//       }
+
+//       const itemTaxAmount = itemDiscountedAfterCoupon * (itemTaxRate / 100);
+//       const itemCessAmount = itemDiscountedAfterCoupon * (itemCessRate / 100);
+
+//       totalTaxAmount += itemTaxAmount;
+//       totalCessAmount += itemCessAmount;
+
+//       orderItems.push({
+//         product: {
+//           _id: product._id,
+//           name: product.name,
+//           price: product.price,
+//           discounted_price: product.discounted_price,
+//           salesperson_discounted_price: product.salesperson_discounted_price,
+//           dnd_discounted_price: product.dnd_discounted_price,
+//           banner_image: product.banner_image,
+//         },
+//         quantity: cartItem.quantity,
+//         tax_amount: itemTaxAmount,
+//         cess_amount: itemCessAmount,
+//         total_amount: currentPrice + itemTaxAmount + itemCessAmount,
+//       });
+//     }
+
+//     // Apply coupon discount
+//     let couponDiscountAmount = 0;
+//     let couponDetails = null;
+
+//     if (coupon) {
+//       if (coupon.userUseLimit && userUsage >= coupon.userUseLimit) {
+//         throw new Error("Coupon usage limit exceeded for user");
+//       }
+
+//       // Calculate discount
+//       if (coupon.discountType === "percentage") {
+//         couponDiscountAmount = discountedPrice * (coupon.discountValue / 100);
+//         if (coupon.maxDiscount) {
+//           couponDiscountAmount = Math.min(
+//             couponDiscountAmount,
+//             coupon.maxDiscount
+//           );
+//         }
+//       } else {
+//         couponDiscountAmount = Math.min(coupon.discountValue, discountedPrice);
+//       }
+
+//       // Update coupon usage
+//       if (coupon.totalUseLimit !== null) {
+//         await Coupon.findByIdAndUpdate(
+//           coupon._id,
+//           { $inc: { totalUseLimit: -1 } },
+//           { session }
+//         );
+//       }
+
+//       // Create coupon usage record
+//       couponDetails = {
+//         code: coupon.code,
+//         discountType: coupon.discountType,
+//         discountValue: coupon.discountValue,
+//         discountAmount: couponDiscountAmount,
+//       };
+//     }
+
+//     // Create address snapshot
+//     const addressSnapshot = { ...address.toObject() };
+//     delete addressSnapshot._id;
+//     delete addressSnapshot.user;
+//     delete addressSnapshot.createdAt;
+//     delete addressSnapshot.updatedAt;
+//     delete addressSnapshot.__v;
+
+//     // Create order
+//     const order = new Order({
+//       user: orderedForUser ? orderedForUser : userId,
+//       items: orderItems,
+//       address: addressSnapshot,
+//       totalAmount: totalAmount,
+//       discountedPrice: discountedPrice,
+//       discountedPriceAfterCoupon: discountedPrice - couponDiscountAmount,
+//       coupon: couponDetails,
+//       orderedBy: userId,
+//       couponId: couponId,
+//       cashfree_order: {
+//         id: orderId,
+//       },
+//     });
+
+//     // Save order and clear cart
+//     await order.save({ session });
+//     await Transaction.create(
+//       [
+//         {
+//           order: order._id,
+//           user: order.user,
+//           type: "payment",
+//           amount: order.discountedPriceAfterCoupon,
+//           payment_method: "cashfree",
+//           status: "success",
+//           transaction_id: order.cashfree_order?.id || null,
+//         },
+//       ],
+//       { session }
+//     );
+
+//     cart.items = [];
+//     await cart.save({ session });
+
+//     await session.commitTransaction();
+
+//     await generateOrderBill(order, req.user);
+
+//     return res
+//       .status(201)
+//       .json(new ApiResponse(201, order, "Order created successfully", true));
+//   } catch (error) {
+//     await session.abortTransaction();
+//     return res
+//       .status(400)
+//       .json(new ApiResponse(400, null, error.message, false));
+//   } finally {
+//     session.endSession();
+//   }
+// });
+
 const createOrder = asyncHandler(async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
     const role = req.user.role;
-
     const { cartId, addressId, couponId, orderId, orderedBy, orderedForUser } =
       req.body;
     const userId = req.user._id;
-
     const currentUserId = orderedBy ? orderedForUser : userId;
-    // Validate input IDs
 
     validateId(cartId, "cart");
     validateId(addressId, "address");
     validateId(couponId, "coupon");
     validateId(userId, "userId");
-
-    if (orderedBy) {
-      validateId(orderedBy, "orderedBy");
-    }
-
-    if (orderedForUser) {
-      validateId(orderedForUser, "orderedForUser");
-    }
+    if (orderedBy) validateId(orderedBy, "orderedBy");
+    if (orderedForUser) validateId(orderedForUser, "orderedForUser");
 
     // Fetch and validate coupon
     let coupon = null;
     if (couponId) {
       coupon = await Coupon.findById(couponId).session(session);
       if (!coupon) throw new Error("Coupon not found");
-
       const now = new Date();
       if (!coupon.active) throw new Error("Coupon is inactive");
       if (now < coupon.startDate) throw new Error("Coupon not yet valid");
@@ -368,34 +622,31 @@ const createOrder = asyncHandler(async (req, res) => {
 
     // Validate address
     let address;
-
     if (orderedBy) {
       address = await Address.findOne({
         user: orderedForUser,
         isPrimary: true,
       }).session(session);
-
-      if (!address) {
+      if (!address)
         throw new Error("No primary address found for the ordered user");
-      }
     } else {
-      address = await Address.findOne({
-        _id: addressId,
-        user: userId,
-      }).session(session);
+      address = await Address.findOne({ _id: addressId, user: userId }).session(
+        session
+      );
     }
-
     if (!address) throw new Error("Address not found");
 
-    // Process cart items
+    // 1. Calculate total discounted price before coupon
     let totalAmount = 0;
     let discountedPrice = 0;
+    let totalTaxAmount = 0;
+    let totalCessAmount = 0;
     const orderItems = [];
+    const itemTotals = [];
 
     for (const cartItem of cart.items) {
       const product = await Product.findById(cartItem.product).session(session);
       if (!product) throw new Error(`Product ${cartItem.product} not found`);
-      // if (!product.instock) throw new Error(`${product.name} is out of stock`);
 
       const inventory = await Inventory.findOne({
         product_id: product._id,
@@ -407,12 +658,10 @@ const createOrder = asyncHandler(async (req, res) => {
           }`
         );
       }
-
       inventory.quantity -= cartItem.quantity;
       await inventory.save({ session });
 
       let currentPrice;
-
       if (role === "salesperson") {
         currentPrice =
           product.salesperson_discounted_price !== null
@@ -440,6 +689,81 @@ const createOrder = asyncHandler(async (req, res) => {
 
       const itemTotal = parseFloat(currentPrice.toString()) * cartItem.quantity;
       discountedPrice += itemTotal;
+      itemTotals.push({ cartItem, product, currentPrice, itemTotal });
+    }
+
+    // 2. Calculate coupon discount amount
+    let couponDiscountAmount = 0;
+    let couponDetails = null;
+    if (coupon) {
+      if (coupon.userUseLimit && userUsage >= coupon.userUseLimit) {
+        throw new Error("Coupon usage limit exceeded for user");
+      }
+      if (coupon.discountType === "percentage") {
+        couponDiscountAmount = discountedPrice * (coupon.discountValue / 100);
+        if (coupon.maxDiscount) {
+          couponDiscountAmount = Math.min(
+            couponDiscountAmount,
+            coupon.maxDiscount
+          );
+        }
+      } else {
+        couponDiscountAmount = Math.min(coupon.discountValue, discountedPrice);
+      }
+      if (coupon.totalUseLimit !== null) {
+        await Coupon.findByIdAndUpdate(
+          coupon._id,
+          { $inc: { totalUseLimit: -1 } },
+          { session }
+        );
+      }
+      couponDetails = {
+        code: coupon.code,
+        discountType: coupon.discountType,
+        discountValue: coupon.discountValue,
+        discountAmount: couponDiscountAmount,
+      };
+    }
+    const discountedPriceAfterCoupon = discountedPrice - couponDiscountAmount;
+
+    // 3. Distribute coupon discount to each product and calculate tax/cess
+    for (const { cartItem, product, currentPrice, itemTotal } of itemTotals) {
+      // Proportionally distribute coupon discount to this item
+      let itemCouponDiscount = 0;
+      if (discountedPrice > 0 && couponDiscountAmount > 0) {
+        itemCouponDiscount =
+          (itemTotal / discountedPrice) * couponDiscountAmount;
+      }
+      const itemDiscountedAfterCoupon = itemTotal - itemCouponDiscount;
+
+      // Tax/Cess calculation on coupon-adjusted price
+      let itemTaxRate = 0;
+      let itemCessRate = 0;
+      let hsn = null;
+      console.log("Fetching HSN code for product:", product);
+      if (product.hsn_code) {
+        console.log("Fetching HSN code for product:", product.hsn_code);
+        hsn = await HSNCode.findById(product.hsn_code);
+      }
+
+      console.log("HSN code fetched:", hsn);
+      if (hsn) {
+        const shippingStateCode = address?.state_code || ORIGIN_STATE_CODE;
+        if (shippingStateCode === ORIGIN_STATE_CODE) {
+          itemTaxRate = (hsn.cgst_rate || 0) + (hsn.sgst_rate || 0);
+        } else {
+          itemTaxRate = hsn.igst_rate || 0;
+        }
+        itemCessRate = hsn.cess || 0;
+      }
+
+      const itemTaxAmount = itemDiscountedAfterCoupon * (itemTaxRate / 100);
+      const itemCessAmount = itemDiscountedAfterCoupon * (itemCessRate / 100);
+
+      totalTaxAmount += itemTaxAmount;
+      totalCessAmount += itemCessAmount;
+
+      return
 
       orderItems.push({
         product: {
@@ -452,48 +776,12 @@ const createOrder = asyncHandler(async (req, res) => {
           banner_image: product.banner_image,
         },
         quantity: cartItem.quantity,
-        priceAtOrder: currentPrice,
+        tax_amount: itemTaxAmount,
+        coupon_discount: itemCouponDiscount,
+        cess_amount: itemCessAmount,
+        total_amount:
+          itemDiscountedAfterCoupon + itemTaxAmount + itemCessAmount,
       });
-    }
-
-    // Apply coupon discount
-    let couponDiscountAmount = 0;
-    let couponDetails = null;
-
-    if (coupon) {
-      if (coupon.userUseLimit && userUsage >= coupon.userUseLimit) {
-        throw new Error("Coupon usage limit exceeded for user");
-      }
-
-      // Calculate discount
-      if (coupon.discountType === "percentage") {
-        couponDiscountAmount = discountedPrice * (coupon.discountValue / 100);
-        if (coupon.maxDiscount) {
-          couponDiscountAmount = Math.min(
-            couponDiscountAmount,
-            coupon.maxDiscount
-          );
-        }
-      } else {
-        couponDiscountAmount = Math.min(coupon.discountValue, discountedPrice);
-      }
-
-      // Update coupon usage
-      if (coupon.totalUseLimit !== null) {
-        await Coupon.findByIdAndUpdate(
-          coupon._id,
-          { $inc: { totalUseLimit: -1 } },
-          { session }
-        );
-      }
-
-      // Create coupon usage record
-      couponDetails = {
-        code: coupon.code,
-        discountType: coupon.discountType,
-        discountValue: coupon.discountValue,
-        discountAmount: couponDiscountAmount,
-      };
     }
 
     // Create address snapshot
@@ -511,10 +799,12 @@ const createOrder = asyncHandler(async (req, res) => {
       address: addressSnapshot,
       totalAmount: totalAmount,
       discountedPrice: discountedPrice,
-      discountedPriceAfterCoupon: discountedPrice - couponDiscountAmount,
+      discountedPriceAfterCoupon: discountedPriceAfterCoupon,
       coupon: couponDetails,
       orderedBy: userId,
       couponId: couponId,
+      priceAfterTax:
+        discountedPriceAfterCoupon + totalTaxAmount + totalCessAmount,
       cashfree_order: {
         id: orderId,
       },
@@ -1021,7 +1311,11 @@ const generateOrderBill = asyncHandler(async (newOrder, user) => {
         <h3>Customer Details</h3>
         <p><strong>Name:</strong> ${address.name}</p>
         <p><strong>Phone:</strong> ${address.mobile}</p>
-        <p><strong>Shipping Address:</strong> ${address.landmark}, ${address.locality}, ${address.address}, ${address.city}, ${address.state} - ${address.pincode}</p>
+        <p><strong>Shipping Address:</strong> ${address.landmark}, ${
+    address.locality
+  }, ${address.address}, ${address.city}, ${address.state} - ${
+    address.pincode
+  }</p>
         <p><strong>Status:</strong> <span class="status-badge">${status}</span></p>
         <div class="payment-info">
           <p><strong>Payment ID:</strong> ${cashfree_order.id}</p>
@@ -1193,19 +1487,26 @@ const buyNowOrder = asyncHandler(async (req, res) => {
     const role = req.user.role;
 
     // Validate IDs
-    if (!mongoose.Types.ObjectId.isValid(productId)) throw new Error("Invalid productId");
-    if (!mongoose.Types.ObjectId.isValid(addressId)) throw new Error("Invalid addressId");
-    if (!quantity || quantity <= 0) throw new Error("Quantity must be greater than 0");
+    if (!mongoose.Types.ObjectId.isValid(productId))
+      throw new Error("Invalid productId");
+    if (!mongoose.Types.ObjectId.isValid(addressId))
+      throw new Error("Invalid addressId");
+    if (!quantity || quantity <= 0)
+      throw new Error("Quantity must be greater than 0");
 
     // Fetch product
     const product = await Product.findById(productId).session(session);
     if (!product) throw new Error("Product not found");
 
     // Fetch inventory
-    const inventory = await Inventory.findOne({ product_id: productId }).session(session);
+    const inventory = await Inventory.findOne({
+      product_id: productId,
+    }).session(session);
     if (!inventory || inventory.quantity < quantity) {
       throw new Error(
-        `${product.name} does not have enough stock. Available: ${inventory ? inventory.quantity : 0}`
+        `${product.name} does not have enough stock. Available: ${
+          inventory ? inventory.quantity : 0
+        }`
       );
     }
 
@@ -1214,7 +1515,10 @@ const buyNowOrder = asyncHandler(async (req, res) => {
     await inventory.save({ session });
 
     // Fetch address
-    const address = await Address.findOne({ _id: addressId, user: userId }).session(session);
+    const address = await Address.findOne({
+      _id: addressId,
+      user: userId,
+    }).session(session);
     if (!address) throw new Error("Address not found");
 
     // Calculate price
@@ -1255,7 +1559,7 @@ const buyNowOrder = asyncHandler(async (req, res) => {
           banner_image: product.banner_image,
         },
         quantity,
-        priceAtOrder: currentPrice,
+        total_amount: currentPrice,
       },
     ];
 
@@ -1322,5 +1626,5 @@ module.exports = {
   getOrderOverview,
   exportOrders,
   generateOrderBill,
-  buyNowOrder
+  buyNowOrder,
 };

@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const { type } = require("os");
 
 const OrderItemSchema = new mongoose.Schema({
   product: {
@@ -38,6 +37,22 @@ const OrderItemSchema = new mongoose.Schema({
     required: true,
     min: 1,
   },
+  tax_amount: {
+    type: mongoose.Schema.Types.Decimal128,
+    default: 0,
+  },
+  cess_amount: {
+    type: mongoose.Schema.Types.Decimal128,
+    default: 0,
+  },
+  coupon_discount: {
+    type: mongoose.Schema.Types.Decimal128,
+    default: 0,
+  },
+  total_amount: {
+    type: mongoose.Schema.Types.Decimal128,
+    default: 0,
+  },
 });
 
 const OrderAddressSchema = new mongoose.Schema({
@@ -71,6 +86,10 @@ const OrderSchema = new mongoose.Schema(
       required: true,
     },
     discountedPriceAfterCoupon: {
+      type: mongoose.Schema.Types.Decimal128,
+      required: true,
+    },
+    priceAfterTax: {
       type: mongoose.Schema.Types.Decimal128,
       required: true,
     },
@@ -114,6 +133,10 @@ OrderSchema.set("toJSON", {
       ? parseFloat(ret.discountedPriceAfterCoupon.toString())
       : 0;
 
+    ret.priceAfterTax = ret.priceAfterTax
+      ? parseFloat(ret.priceAfterTax.toString())
+      : 0;
+
     // Ensure ret.items is an array before mapping
     if (Array.isArray(ret.items)) {
       ret.items = ret.items.map((item) => ({
@@ -131,6 +154,18 @@ OrderSchema.set("toJSON", {
           dnd_discounted_price: item.product.dnd_discounted_price
             ? parseFloat(item.product.dnd_discounted_price.toString())
             : null,
+          tax_amount: item.tax_amount
+            ? parseFloat(item.tax_amount.toString())
+            : 0,
+          cess_amount: item.cess_amount
+            ? parseFloat(item.cess_amount.toString())
+            : 0,
+          total_amount: item.total_amount
+            ? parseFloat(item.total_amount.toString())
+            : 0,
+          coupon_discount: item.coupon_price
+            ? parseFloat(item.coupon_price.toString())
+            : 0,
         },
       }));
     }

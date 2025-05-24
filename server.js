@@ -31,7 +31,11 @@ const medicineTypeRoutes = require("./routes/medicine_type/index.js");
 const inventoryRoutes = require("./routes/inventory/index.js");
 const hsncodesRoutes = require("./routes/hsn_code/index.js");
 const mediaRoutes = require("./routes/media/index.js");
+const appBannerRoutes = require("./routes/app_banner/index.js");
 const transactionRoutes = require("./routes/transaction/index.js");
+const termsConditionRoutes = require("./routes/terms_condition/index.js");
+const privacyPolicyRoutes = require("./routes/privacy_policy/index.js");
+const faqRoutes = require("./routes/faq/index.js");
 
 // Connect DB
 connectDB();
@@ -68,7 +72,11 @@ app.use("/api/medicine-type", medicineTypeRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/hsn-codes", hsncodesRoutes);
 app.use("/api/media", mediaRoutes);
+app.use("/api/app-banner", appBannerRoutes);
 app.use("/api/transaction", transactionRoutes);
+app.use("/api/terms-condition", termsConditionRoutes);
+app.use("/api/privacy-policy", privacyPolicyRoutes);
+app.use("/api/faq", faqRoutes);
 
 // Documentation (Development)
 app.use("/api-doc", swaggerUI.serve, swaggerUI.setup(swaggerSpec));

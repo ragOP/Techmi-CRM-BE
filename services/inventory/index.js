@@ -1,4 +1,5 @@
 const Inventory = require("../../models/inventoryModel");
+const Product = require("../../models/productsModel");
 const InventoryRepository = require("../../repositories/inventory");
 
 const getAllInventories = async () => InventoryRepository.getAllInventories();
@@ -16,6 +17,11 @@ const deleteInventory = async (id) => InventoryRepository.deleteInventory(id);
 const getInventoryByProductId = async (productId) => {
   const inventory = await Inventory.findOne({ product_id: productId });
   return inventory;
+};
+
+const getProductsWithInventory = async (productIds) => {
+  const products = await Product.find({ _id: { $in: productIds } });
+  return await attachInventoryToProducts(products);
 };
 
 const attachInventoryToProducts = async (products) => {
@@ -47,4 +53,5 @@ module.exports = {
   deleteInventory,
   attachInventoryToProducts,
   getInventoryByProductId,
+  getProductsWithInventory,
 };

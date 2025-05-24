@@ -16,6 +16,7 @@ const { uploadPDF } = require("../../utils/upload");
 const { convertToXLSX } = require("../../helpers/products/convertToXSLV");
 const { convertToCSV } = require("../../helpers/products/convertToCSV");
 const { sendEmail } = require("../../helpers/email");
+const Inventory = require("../../models/inventoryModel");
 
 const getAllOrders = asyncHandler(async (req, res) => {
   const adminId = req.admin._id;
@@ -1182,6 +1183,136 @@ const generateOrderBill = asyncHandler(async (newOrder, user) => {
   return true;
 });
 
+const buyNowOrder = asyncHandler(async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { productId, quantity, addressId, orderId } = req.body;
+    const userId = req.user._id;
+    const role = req.user.role;
+
+    // Validate IDs
+    if (!mongoose.Types.ObjectId.isValid(productId)) throw new Error("Invalid productId");
+    if (!mongoose.Types.ObjectId.isValid(addressId)) throw new Error("Invalid addressId");
+    if (!quantity || quantity <= 0) throw new Error("Quantity must be greater than 0");
+
+    // Fetch product
+    const product = await Product.findById(productId).session(session);
+    if (!product) throw new Error("Product not found");
+
+    // Fetch inventory
+    const inventory = await Inventory.findOne({ product_id: productId }).session(session);
+    if (!inventory || inventory.quantity < quantity) {
+      throw new Error(
+        `${product.name} does not have enough stock. Available: ${inventory ? inventory.quantity : 0}`
+      );
+    }
+
+    // Reduce inventory
+    inventory.quantity -= quantity;
+    await inventory.save({ session });
+
+    // Fetch address
+    const address = await Address.findOne({ _id: addressId, user: userId }).session(session);
+    if (!address) throw new Error("Address not found");
+
+    // Calculate price
+    let currentPrice;
+    if (role === "salesperson") {
+      currentPrice =
+        product.salesperson_discounted_price !== null
+          ? product.salesperson_discounted_price
+          : product.discounted_price !== null
+          ? product.discounted_price
+          : product.price;
+    } else if (role === "dnd") {
+      currentPrice =
+        product.dnd_discounted_price !== null
+          ? product.dnd_discounted_price
+          : product.discounted_price !== null
+          ? product.discounted_price
+          : product.price;
+    } else {
+      currentPrice =
+        product.discounted_price !== null
+          ? product.discounted_price
+          : product.price;
+    }
+
+    const itemTotal = parseFloat(currentPrice.toString()) * quantity;
+
+    // Prepare order item
+    const orderItems = [
+      {
+        product: {
+          _id: product._id,
+          name: product.name,
+          price: product.price,
+          discounted_price: product.discounted_price,
+          salesperson_discounted_price: product.salesperson_discounted_price,
+          dnd_discounted_price: product.dnd_discounted_price,
+          banner_image: product.banner_image,
+        },
+        quantity,
+        priceAtOrder: currentPrice,
+      },
+    ];
+
+    // Create address snapshot
+    const addressSnapshot = { ...address.toObject() };
+    delete addressSnapshot._id;
+    delete addressSnapshot.user;
+    delete addressSnapshot.createdAt;
+    delete addressSnapshot.updatedAt;
+    delete addressSnapshot.__v;
+
+    // Create order
+    const order = new Order({
+      user: userId,
+      items: orderItems,
+      address: addressSnapshot,
+      totalAmount: parseFloat(product.price.toString()) * quantity,
+      discountedPrice: itemTotal,
+      discountedPriceAfterCoupon: itemTotal,
+      orderedBy: userId,
+      cashfree_order: { id: orderId },
+    });
+
+    await order.save({ session });
+
+    await Transaction.create(
+      [
+        {
+          order: order._id,
+          user: order.user,
+          type: "payment",
+          amount: order.discountedPriceAfterCoupon,
+          payment_method: "cashfree",
+          status: "success",
+          transaction_id: order.cashfree_order?.id || null,
+        },
+      ],
+      { session }
+    );
+
+    await session.commitTransaction();
+
+    await generateOrderBill(order, req.user);
+
+    return res
+      .status(201)
+      .json(new ApiResponse(201, order, "Order placed successfully", true));
+  } catch (error) {
+    await session.abortTransaction();
+    return res
+      .status(400)
+      .json(new ApiResponse(400, null, error.message, false));
+  } finally {
+    session.endSession();
+  }
+});
+
 module.exports = {
   createOrder,
   getOrderHistory,
@@ -1191,4 +1322,5 @@ module.exports = {
   getOrderOverview,
   exportOrders,
   generateOrderBill,
+  buyNowOrder
 };

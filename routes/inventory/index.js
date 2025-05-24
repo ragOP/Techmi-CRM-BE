@@ -20,6 +20,7 @@ router.post(
   adminOrSubAdminOrSuperAdmin,
   InventoryController.createInventory
 );
+router.post("/check", InventoryController.checkInventoryForProducts);
 router.put(
   "/:id",
   adminOrSubAdminOrSuperAdmin,

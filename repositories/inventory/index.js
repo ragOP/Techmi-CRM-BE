@@ -11,10 +11,15 @@ const updateInventory = async (id, data) =>
 
 const deleteInventory = async (id) => Inventory.findByIdAndDelete(id);
 
+const getInventoriesByProductIds = async (productIds) => {
+  return await Inventory.find({ product_id: { $in: productIds } });
+};
+
 module.exports = {
   getAllInventories,
   getInventoryById,
   createInventory,
   updateInventory,
   deleteInventory,
+  getInventoriesByProductIds,
 };

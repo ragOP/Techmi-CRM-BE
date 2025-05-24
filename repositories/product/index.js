@@ -185,7 +185,7 @@ const getAllProducts = async ({
     .sort(sortOptions)
     .skip(skip)
     .limit(per_page)
-    .populate("medicine_type");
+    .populate(["medicine_type", "hsn_code"]);
 
   const total = await Product.countDocuments(filter);
 
@@ -200,7 +200,10 @@ const getAllProducts = async ({
 const Inventory = require("../../models/inventoryModel");
 
 const getProductById = async (id) => {
-  const product = await Product.findById(id).populate("medicine_type");
+  const product = await Product.findById(id).populate([
+    "medicine_type",
+    "hsn_code",
+  ]);
   if (!product) return null;
 
   const inventory = await Inventory.findOne({ product_id: product._id });
@@ -234,7 +237,7 @@ const getProductsByAdmin = async ({ id, filters, page, per_page }) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate("MedicineType"),
+      .populate(["medicine_type", "hsn_code"]),
     Product.countDocuments(query),
   ]);
 

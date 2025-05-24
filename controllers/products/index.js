@@ -8,9 +8,7 @@ const {
   uploadPDF,
 } = require("../../utils/upload/index.js");
 const Product = require("../../models/productsModel.js");
-const {
-  convertToXLSX,
-} = require("../../helpers/products/convertToXSLV.js");
+const { convertToXLSX } = require("../../helpers/products/convertToXSLV.js");
 const { convertToCSV } = require("../../helpers/products/convertToCSV.js");
 const path = require("path");
 const fs = require("fs/promises");
@@ -256,7 +254,7 @@ const exportProducts = asyncHandler(async (req, res) => {
     buffer = Buffer.from(content, "utf-8");
     mimeType = "text/csv";
   } else if (fileType === "xlsx") {
-    buffer = convertToXLSX(serializedProducts); // should return Buffer
+    buffer = convertToXLSX(serializedProducts);
     mimeType =
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
   } else {

@@ -35,6 +35,7 @@ const appBannerRoutes = require("./routes/app_banner/index.js");
 const transactionRoutes = require("./routes/transaction/index.js");
 const termsConditionRoutes = require("./routes/terms_condition/index.js");
 const privacyPolicyRoutes = require("./routes/privacy_policy/index.js");
+const faqRoutes = require("./routes/faq/index.js");
 
 // Connect DB
 connectDB();
@@ -75,6 +76,7 @@ app.use("/api/app-banner", appBannerRoutes);
 app.use("/api/transaction", transactionRoutes);
 app.use("/api/terms-condition", termsConditionRoutes);
 app.use("/api/privacy-policy", privacyPolicyRoutes);
+app.use("/api/faq", faqRoutes);
 
 // Documentation (Development)
 app.use("/api-doc", swaggerUI.serve, swaggerUI.setup(swaggerSpec));

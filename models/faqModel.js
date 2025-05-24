@@ -15,6 +15,10 @@ const faqSchema = new mongoose.Schema(
       ref: "Admin",
       required: true,
     },
+    order: {
+      type: Number,
+      required: true,
+    },
   },
   { timestamps: true }
 );

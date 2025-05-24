@@ -30,6 +30,7 @@ const bulkUpdateFaq = async (faqList) => {
           question: faq.question,
           answer: faq.answer,
           created_by_admin: faq.created_by_admin,
+           order: faq.order,
         },
       },
     },

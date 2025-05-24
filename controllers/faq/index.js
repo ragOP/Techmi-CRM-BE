@@ -1,3 +1,4 @@
+const Faq = require("../../models/faqModel");
 const service = require("../../services/faq");
 const ApiResponse = require("../../utils/ApiResponse");
 
@@ -13,6 +14,12 @@ const createFaq = async (req, res) => {
   const payload = {
     ...req.body,
   };
+  const maxOrderFaq = await Faq.findOne().sort({ order: -1 }).limit(1);
+
+  // Determine new order value
+  const newOrder = maxOrderFaq ? maxOrderFaq.order + 1 : 1;
+
+  payload.order = newOrder;
   const result = await service.createFaq(payload);
   res.json(new ApiResponse(200, result, "Faq created successfully", true));
 };

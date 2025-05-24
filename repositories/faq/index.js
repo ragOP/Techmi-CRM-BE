@@ -1,7 +1,7 @@
 const Faq = require("../../models/faqModel");
 
 const getFaq = async () => {
-  return await Faq.find();
+  return await Faq.find().sort({ order: 1 });
 };
 
 const createFaq = async (data) => {

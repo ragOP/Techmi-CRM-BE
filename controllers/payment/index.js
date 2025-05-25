@@ -15,6 +15,8 @@ const createCashfreeSession = async (req, res) => {
       orderedForUser,
       orderType = "normal",
       url,
+      quantity = 1,
+      productId,
     } = req.body;
 
     const orderId = "order_" + Date.now();
@@ -27,6 +29,10 @@ const createCashfreeSession = async (req, res) => {
 
     if (cartId) {
       returnUrl += `&cartId=${cartId}`;
+    }
+
+    if (productId) {
+      returnUrl += `&productId=${productId}&quantity=${quantity}`;
     }
 
     if (couponId) {

@@ -2,9 +2,12 @@ const MedicineType = require("../../models/medicineType");
 
 const getAllMedicineTypes = async () => MedicineType.find();
 
-const getAllMedicineTypesWithCount = async ({ filters }) => {
+const getAllMedicineTypesWithCount = async ({ filters, page, per_page }) => {
   const [types, total] = await Promise.all([
-    MedicineType.find(filters),
+    MedicineType.find(filters)
+      .skip((page - 1) * per_page)
+      .limit(per_page)
+      .sort({ createdAt: -1 }),
     MedicineType.countDocuments(filters),
   ]);
   return { types, total };

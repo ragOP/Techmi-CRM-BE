@@ -13,6 +13,12 @@ router.get(
 );
 
 router.get(
+  "/export",
+  adminOrSuperAdmin,
+  DashboardController.exportDashboardData
+);
+
+router.get(
   "/sales-overview",
   adminOrSuperAdmin,
   DashboardController.getSalesOverviewByMonth

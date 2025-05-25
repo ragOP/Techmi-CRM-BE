@@ -1,7 +1,11 @@
 const MedicineTypeRepository = require("../../repositories/medicine_type");
 
-const getAllMedicineTypesWithCount = async ({ filters }) => {
-  return await MedicineTypeRepository.getAllMedicineTypesWithCount({ filters });
+const getAllMedicineTypesWithCount = async ({ filters, page, per_page }) => {
+  return await MedicineTypeRepository.getAllMedicineTypesWithCount({
+    filters,
+    page,
+    per_page,
+  });
 };
 
 const getAllMedicineTypes = async () => {

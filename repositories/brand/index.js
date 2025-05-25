@@ -2,9 +2,12 @@ const Brand = require("../../models/brandModel");
 
 const getAllBrands = async () => Brand.find();
 
-const getAllBrandsWithCount = async ({ filters }) => {
+const getAllBrandsWithCount = async ({ filters, page, per_page }) => {
   const [brands, total] = await Promise.all([
-    Brand.find(filters),
+    Brand.find(filters)
+      .skip((page - 1) * per_page)
+      .limit(per_page)
+      .sort({ createdAt: -1 }),
     Brand.countDocuments(filters),
   ]);
   return { brands, total };

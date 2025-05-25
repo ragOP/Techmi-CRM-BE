@@ -3,7 +3,7 @@ const HSNCodeService = require("../../services/hsn_code/index.js");
 const ApiResponse = require("../../utils/ApiResponse.js");
 
 const getAllHSNCodes = asyncHandler(async (req, res) => {
-  const { start_date, end_date, search = "" } = req.query;
+  const { start_date, end_date, search = "", is_active = false } = req.query;
 
   const trimmedSearch = search ? search?.trim() : "";
 
@@ -24,6 +24,7 @@ const getAllHSNCodes = asyncHandler(async (req, res) => {
           ],
         }
       : {}),
+    ...(is_active ? { is_active: true } : {}),
   };
 
   const { data, total } = await HSNCodeService.getAllHSNCodes({

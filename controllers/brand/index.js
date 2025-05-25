@@ -4,7 +4,14 @@ const BrandService = require("../../services/brand/index.js");
 const { asyncHandler } = require("../../common/asyncHandler.js");
 
 const getAllBrands = asyncHandler(async (req, res) => {
-  const { search, start_date, end_date } = req.query;
+  const {
+    search,
+    start_date,
+    end_date,
+    is_active = false,
+    page = 1,
+    per_page = 50,
+  } = req.query;
   const filters = {
     ...(search && {
       name: {
@@ -20,10 +27,14 @@ const getAllBrands = asyncHandler(async (req, res) => {
           },
         }
       : {}),
+    ...(is_active ? { is_active: true } : {}),
   };
   const { brands, total } = await BrandService.getAllBrandsWithCount({
     filters,
+    page,
+    per_page,
   });
+  
   res.json(
     new ApiResponse(
       200,

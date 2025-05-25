@@ -23,7 +23,12 @@ const createCashfreeSession = async (req, res) => {
     const cartUrl = "http://localhost:3000/cart";
     const finalUrl = url ? url : cartUrl;
 
-    let returnUrl = `${finalUrl}?orderId=${orderId}&addressId=${addressId}&cartId=${cartId}&orderType=${orderType}`;
+    let returnUrl = `${finalUrl}?orderId=${orderId}&addressId=${addressId}&orderType=${orderType}`;
+
+    if (cartId) {
+      returnUrl += `&cartId=${cartId}`;
+    }
+
     if (couponId) {
       returnUrl += `&couponId=${couponId}`;
     }

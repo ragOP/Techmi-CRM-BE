@@ -351,269 +351,6 @@ const validateId = (id, name) => {
   }
 };
 
-// const createOrder = asyncHandler(async (req, res) => {
-//   const session = await mongoose.startSession();
-//   session.startTransaction();
-
-//   try {
-//     const role = req.user.role;
-
-//     const { cartId, addressId, couponId, orderId, orderedBy, orderedForUser } =
-//       req.body;
-//     const userId = req.user._id;
-
-//     const currentUserId = orderedBy ? orderedForUser : userId;
-//     // Validate input IDs
-
-//     validateId(cartId, "cart");
-//     validateId(addressId, "address");
-//     validateId(couponId, "coupon");
-//     validateId(userId, "userId");
-
-//     if (orderedBy) {
-//       validateId(orderedBy, "orderedBy");
-//     }
-
-//     if (orderedForUser) {
-//       validateId(orderedForUser, "orderedForUser");
-//     }
-
-//     // Fetch and validate coupon
-//     let coupon = null;
-//     if (couponId) {
-//       coupon = await Coupon.findById(couponId).session(session);
-//       if (!coupon) throw new Error("Coupon not found");
-
-//       const now = new Date();
-//       if (!coupon.active) throw new Error("Coupon is inactive");
-//       if (now < coupon.startDate) throw new Error("Coupon not yet valid");
-//       if (now > coupon.endDate) throw new Error("Coupon expired");
-//       if (coupon.totalUseLimit !== null && coupon.totalUseLimit <= 0) {
-//         throw new Error("Coupon usage limit reached");
-//       }
-//     }
-
-//     // Validate cart
-//     const cart = await Cart.findOne({ _id: cartId, user: userId }).session(
-//       session
-//     );
-//     if (!cart) throw new Error("Cart not found");
-//     if (cart.items.length === 0) throw new Error("Cart is empty");
-
-//     // Validate address
-//     let address;
-
-//     if (orderedBy) {
-//       address = await Address.findOne({
-//         user: orderedForUser,
-//         isPrimary: true,
-//       }).session(session);
-
-//       if (!address) {
-//         throw new Error("No primary address found for the ordered user");
-//       }
-//     } else {
-//       address = await Address.findOne({
-//         _id: addressId,
-//         user: userId,
-//       }).session(session);
-//     }
-
-//     if (!address) throw new Error("Address not found");
-
-//     // Process cart items
-//     let totalAmount = 0;
-//     let discountedPrice = 0;
-//     let totalTaxAmount = 0;
-//     let totalCessAmount = 0;
-
-//     const orderItems = [];
-
-//     for (const cartItem of cart.items) {
-//       const product = await Product.findById(cartItem.product).session(session);
-//       if (!product) throw new Error(`Product ${cartItem.product} not found`);
-
-//       const inventory = await Inventory.findOne({
-//         product_id: product._id,
-//       }).session(session);
-//       if (!inventory || inventory.quantity < cartItem.quantity) {
-//         throw new Error(
-//           `${product.name} does not have enough stock. Available: ${
-//             inventory ? inventory.quantity : 0
-//           }`
-//         );
-//       }
-
-//       inventory.quantity -= cartItem.quantity;
-//       await inventory.save({ session });
-
-//       let currentPrice;
-
-//       if (role === "salesperson") {
-//         currentPrice =
-//           product.salesperson_discounted_price !== null
-//             ? product.salesperson_discounted_price
-//             : product.discounted_price !== null
-//             ? product.discounted_price
-//             : product.price;
-//       } else if (role === "dnd") {
-//         currentPrice =
-//           product.dnd_discounted_price !== null
-//             ? product.dnd_discounted_price
-//             : product.discounted_price !== null
-//             ? product.discounted_price
-//             : product.price;
-//       } else {
-//         currentPrice =
-//           product.discounted_price !== null
-//             ? product.discounted_price
-//             : product.price;
-//       }
-
-//       const withoutDiscountPrice =
-//         parseFloat(product.price.toString()) * cartItem.quantity;
-//       totalAmount += withoutDiscountPrice;
-
-//       const itemTotal = parseFloat(currentPrice.toString()) * cartItem.quantity;
-//       discountedPrice += itemTotal;
-
-//       let itemTaxRate = 0;
-//       let itemCessRate = 0;
-
-//       if (hsn) {
-//         const shippingStateCode = address.state_code;
-//         if (shippingStateCode === ORIGIN_STATE_CODE) {
-//           itemTaxRate = (hsn.cgst_rate || 0) + (hsn.sgst_rate || 0);
-//         } else {
-//           itemTaxRate = hsn.igst_rate || 0;
-//         }
-//         itemCessRate = hsn.cess || 0;
-//       }
-
-//       const itemTaxAmount = itemDiscountedAfterCoupon * (itemTaxRate / 100);
-//       const itemCessAmount = itemDiscountedAfterCoupon * (itemCessRate / 100);
-
-//       totalTaxAmount += itemTaxAmount;
-//       totalCessAmount += itemCessAmount;
-
-//       orderItems.push({
-//         product: {
-//           _id: product._id,
-//           name: product.name,
-//           price: product.price,
-//           discounted_price: product.discounted_price,
-//           salesperson_discounted_price: product.salesperson_discounted_price,
-//           dnd_discounted_price: product.dnd_discounted_price,
-//           banner_image: product.banner_image,
-//         },
-//         quantity: cartItem.quantity,
-//         tax_amount: itemTaxAmount,
-//         cess_amount: itemCessAmount,
-//         total_amount: currentPrice + itemTaxAmount + itemCessAmount,
-//       });
-//     }
-
-//     // Apply coupon discount
-//     let couponDiscountAmount = 0;
-//     let couponDetails = null;
-
-//     if (coupon) {
-//       if (coupon.userUseLimit && userUsage >= coupon.userUseLimit) {
-//         throw new Error("Coupon usage limit exceeded for user");
-//       }
-
-//       // Calculate discount
-//       if (coupon.discountType === "percentage") {
-//         couponDiscountAmount = discountedPrice * (coupon.discountValue / 100);
-//         if (coupon.maxDiscount) {
-//           couponDiscountAmount = Math.min(
-//             couponDiscountAmount,
-//             coupon.maxDiscount
-//           );
-//         }
-//       } else {
-//         couponDiscountAmount = Math.min(coupon.discountValue, discountedPrice);
-//       }
-
-//       // Update coupon usage
-//       if (coupon.totalUseLimit !== null) {
-//         await Coupon.findByIdAndUpdate(
-//           coupon._id,
-//           { $inc: { totalUseLimit: -1 } },
-//           { session }
-//         );
-//       }
-
-//       // Create coupon usage record
-//       couponDetails = {
-//         code: coupon.code,
-//         discountType: coupon.discountType,
-//         discountValue: coupon.discountValue,
-//         discountAmount: couponDiscountAmount,
-//       };
-//     }
-
-//     // Create address snapshot
-//     const addressSnapshot = { ...address.toObject() };
-//     delete addressSnapshot._id;
-//     delete addressSnapshot.user;
-//     delete addressSnapshot.createdAt;
-//     delete addressSnapshot.updatedAt;
-//     delete addressSnapshot.__v;
-
-//     // Create order
-//     const order = new Order({
-//       user: orderedForUser ? orderedForUser : userId,
-//       items: orderItems,
-//       address: addressSnapshot,
-//       totalAmount: totalAmount,
-//       discountedPrice: discountedPrice,
-//       discountedPriceAfterCoupon: discountedPrice - couponDiscountAmount,
-//       coupon: couponDetails,
-//       orderedBy: userId,
-//       couponId: couponId,
-//       cashfree_order: {
-//         id: orderId,
-//       },
-//     });
-
-//     // Save order and clear cart
-//     await order.save({ session });
-//     await Transaction.create(
-//       [
-//         {
-//           order: order._id,
-//           user: order.user,
-//           type: "payment",
-//           amount: order.discountedPriceAfterCoupon,
-//           payment_method: "cashfree",
-//           status: "success",
-//           transaction_id: order.cashfree_order?.id || null,
-//         },
-//       ],
-//       { session }
-//     );
-
-//     cart.items = [];
-//     await cart.save({ session });
-
-//     await session.commitTransaction();
-
-//     await generateOrderBill(order, req.user);
-
-//     return res
-//       .status(201)
-//       .json(new ApiResponse(201, order, "Order created successfully", true));
-//   } catch (error) {
-//     await session.abortTransaction();
-//     return res
-//       .status(400)
-//       .json(new ApiResponse(400, null, error.message, false));
-//   } finally {
-//     session.endSession();
-//   }
-// });
-
 const createOrder = asyncHandler(async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -681,18 +418,22 @@ const createOrder = asyncHandler(async (req, res) => {
       const product = await Product.findById(cartItem.product).session(session);
       if (!product) throw new Error(`Product ${cartItem.product} not found`);
 
-      const inventory = await Inventory.findOne({
-        product_id: product._id,
-      }).session(session);
-      if (!inventory || inventory.quantity < cartItem.quantity) {
-        throw new Error(
-          `${product.name} does not have enough stock. Available: ${
-            inventory ? inventory.quantity : 0
-          }`
-        );
+      const productType = product.product_type || "product";
+
+      if (productType === "product") {
+        const inventory = await Inventory.findOne({
+          product_id: product._id,
+        }).session(session);
+        if (!inventory || inventory.quantity < cartItem.quantity) {
+          throw new Error(
+            `${product.name} does not have enough stock. Available: ${
+              inventory ? inventory.quantity : 0
+            }`
+          );
+        }
+        inventory.quantity -= cartItem.quantity;
+        await inventory.save({ session });
       }
-      inventory.quantity -= cartItem.quantity;
-      await inventory.save({ session });
 
       let currentPrice;
       if (role === "salesperson") {
@@ -1616,21 +1357,24 @@ const buyNowOrder = asyncHandler(async (req, res) => {
     const product = await Product.findById(productId).session(session);
     if (!product) throw new Error("Product not found");
 
-    // Fetch inventory
-    const inventory = await Inventory.findOne({
-      product_id: productId,
-    }).session(session);
-    if (!inventory || inventory.quantity < quantity) {
-      throw new Error(
-        `${product.name} does not have enough stock. Available: ${
-          inventory ? inventory.quantity : 0
-        }`
-      );
-    }
+    const productType = product.product_type || "product";
 
-    // Reduce inventory
-    inventory.quantity -= quantity;
-    await inventory.save({ session });
+    if (productType === "product") {
+      const inventory = await Inventory.findOne({
+        product_id: productId,
+      }).session(session);
+      if (!inventory || inventory.quantity < quantity) {
+        throw new Error(
+          `${product.name} does not have enough stock. Available: ${
+            inventory ? inventory.quantity : 0
+          }`
+        );
+      }
+
+      // Reduce inventory
+      inventory.quantity -= quantity;
+      await inventory.save({ session });
+    }
 
     // Fetch address
     const address = await Address.findOne({
@@ -1836,3 +1580,266 @@ module.exports = {
   generateOrderBill,
   buyNowOrder,
 };
+
+// const createOrder = asyncHandler(async (req, res) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const role = req.user.role;
+
+//     const { cartId, addressId, couponId, orderId, orderedBy, orderedForUser } =
+//       req.body;
+//     const userId = req.user._id;
+
+//     const currentUserId = orderedBy ? orderedForUser : userId;
+//     // Validate input IDs
+
+//     validateId(cartId, "cart");
+//     validateId(addressId, "address");
+//     validateId(couponId, "coupon");
+//     validateId(userId, "userId");
+
+//     if (orderedBy) {
+//       validateId(orderedBy, "orderedBy");
+//     }
+
+//     if (orderedForUser) {
+//       validateId(orderedForUser, "orderedForUser");
+//     }
+
+//     // Fetch and validate coupon
+//     let coupon = null;
+//     if (couponId) {
+//       coupon = await Coupon.findById(couponId).session(session);
+//       if (!coupon) throw new Error("Coupon not found");
+
+//       const now = new Date();
+//       if (!coupon.active) throw new Error("Coupon is inactive");
+//       if (now < coupon.startDate) throw new Error("Coupon not yet valid");
+//       if (now > coupon.endDate) throw new Error("Coupon expired");
+//       if (coupon.totalUseLimit !== null && coupon.totalUseLimit <= 0) {
+//         throw new Error("Coupon usage limit reached");
+//       }
+//     }
+
+//     // Validate cart
+//     const cart = await Cart.findOne({ _id: cartId, user: userId }).session(
+//       session
+//     );
+//     if (!cart) throw new Error("Cart not found");
+//     if (cart.items.length === 0) throw new Error("Cart is empty");
+
+//     // Validate address
+//     let address;
+
+//     if (orderedBy) {
+//       address = await Address.findOne({
+//         user: orderedForUser,
+//         isPrimary: true,
+//       }).session(session);
+
+//       if (!address) {
+//         throw new Error("No primary address found for the ordered user");
+//       }
+//     } else {
+//       address = await Address.findOne({
+//         _id: addressId,
+//         user: userId,
+//       }).session(session);
+//     }
+
+//     if (!address) throw new Error("Address not found");
+
+//     // Process cart items
+//     let totalAmount = 0;
+//     let discountedPrice = 0;
+//     let totalTaxAmount = 0;
+//     let totalCessAmount = 0;
+
+//     const orderItems = [];
+
+//     for (const cartItem of cart.items) {
+//       const product = await Product.findById(cartItem.product).session(session);
+//       if (!product) throw new Error(`Product ${cartItem.product} not found`);
+
+//       const inventory = await Inventory.findOne({
+//         product_id: product._id,
+//       }).session(session);
+//       if (!inventory || inventory.quantity < cartItem.quantity) {
+//         throw new Error(
+//           `${product.name} does not have enough stock. Available: ${
+//             inventory ? inventory.quantity : 0
+//           }`
+//         );
+//       }
+
+//       inventory.quantity -= cartItem.quantity;
+//       await inventory.save({ session });
+
+//       let currentPrice;
+
+//       if (role === "salesperson") {
+//         currentPrice =
+//           product.salesperson_discounted_price !== null
+//             ? product.salesperson_discounted_price
+//             : product.discounted_price !== null
+//             ? product.discounted_price
+//             : product.price;
+//       } else if (role === "dnd") {
+//         currentPrice =
+//           product.dnd_discounted_price !== null
+//             ? product.dnd_discounted_price
+//             : product.discounted_price !== null
+//             ? product.discounted_price
+//             : product.price;
+//       } else {
+//         currentPrice =
+//           product.discounted_price !== null
+//             ? product.discounted_price
+//             : product.price;
+//       }
+
+//       const withoutDiscountPrice =
+//         parseFloat(product.price.toString()) * cartItem.quantity;
+//       totalAmount += withoutDiscountPrice;
+
+//       const itemTotal = parseFloat(currentPrice.toString()) * cartItem.quantity;
+//       discountedPrice += itemTotal;
+
+//       let itemTaxRate = 0;
+//       let itemCessRate = 0;
+
+//       if (hsn) {
+//         const shippingStateCode = address.state_code;
+//         if (shippingStateCode === ORIGIN_STATE_CODE) {
+//           itemTaxRate = (hsn.cgst_rate || 0) + (hsn.sgst_rate || 0);
+//         } else {
+//           itemTaxRate = hsn.igst_rate || 0;
+//         }
+//         itemCessRate = hsn.cess || 0;
+//       }
+
+//       const itemTaxAmount = itemDiscountedAfterCoupon * (itemTaxRate / 100);
+//       const itemCessAmount = itemDiscountedAfterCoupon * (itemCessRate / 100);
+
+//       totalTaxAmount += itemTaxAmount;
+//       totalCessAmount += itemCessAmount;
+
+//       orderItems.push({
+//         product: {
+//           _id: product._id,
+//           name: product.name,
+//           price: product.price,
+//           discounted_price: product.discounted_price,
+//           salesperson_discounted_price: product.salesperson_discounted_price,
+//           dnd_discounted_price: product.dnd_discounted_price,
+//           banner_image: product.banner_image,
+//         },
+//         quantity: cartItem.quantity,
+//         tax_amount: itemTaxAmount,
+//         cess_amount: itemCessAmount,
+//         total_amount: currentPrice + itemTaxAmount + itemCessAmount,
+//       });
+//     }
+
+//     // Apply coupon discount
+//     let couponDiscountAmount = 0;
+//     let couponDetails = null;
+
+//     if (coupon) {
+//       if (coupon.userUseLimit && userUsage >= coupon.userUseLimit) {
+//         throw new Error("Coupon usage limit exceeded for user");
+//       }
+
+//       // Calculate discount
+//       if (coupon.discountType === "percentage") {
+//         couponDiscountAmount = discountedPrice * (coupon.discountValue / 100);
+//         if (coupon.maxDiscount) {
+//           couponDiscountAmount = Math.min(
+//             couponDiscountAmount,
+//             coupon.maxDiscount
+//           );
+//         }
+//       } else {
+//         couponDiscountAmount = Math.min(coupon.discountValue, discountedPrice);
+//       }
+
+//       // Update coupon usage
+//       if (coupon.totalUseLimit !== null) {
+//         await Coupon.findByIdAndUpdate(
+//           coupon._id,
+//           { $inc: { totalUseLimit: -1 } },
+//           { session }
+//         );
+//       }
+
+//       // Create coupon usage record
+//       couponDetails = {
+//         code: coupon.code,
+//         discountType: coupon.discountType,
+//         discountValue: coupon.discountValue,
+//         discountAmount: couponDiscountAmount,
+//       };
+//     }
+
+//     // Create address snapshot
+//     const addressSnapshot = { ...address.toObject() };
+//     delete addressSnapshot._id;
+//     delete addressSnapshot.user;
+//     delete addressSnapshot.createdAt;
+//     delete addressSnapshot.updatedAt;
+//     delete addressSnapshot.__v;
+
+//     // Create order
+//     const order = new Order({
+//       user: orderedForUser ? orderedForUser : userId,
+//       items: orderItems,
+//       address: addressSnapshot,
+//       totalAmount: totalAmount,
+//       discountedPrice: discountedPrice,
+//       discountedPriceAfterCoupon: discountedPrice - couponDiscountAmount,
+//       coupon: couponDetails,
+//       orderedBy: userId,
+//       couponId: couponId,
+//       cashfree_order: {
+//         id: orderId,
+//       },
+//     });
+
+//     // Save order and clear cart
+//     await order.save({ session });
+//     await Transaction.create(
+//       [
+//         {
+//           order: order._id,
+//           user: order.user,
+//           type: "payment",
+//           amount: order.discountedPriceAfterCoupon,
+//           payment_method: "cashfree",
+//           status: "success",
+//           transaction_id: order.cashfree_order?.id || null,
+//         },
+//       ],
+//       { session }
+//     );
+
+//     cart.items = [];
+//     await cart.save({ session });
+
+//     await session.commitTransaction();
+
+//     await generateOrderBill(order, req.user);
+
+//     return res
+//       .status(201)
+//       .json(new ApiResponse(201, order, "Order created successfully", true));
+//   } catch (error) {
+//     await session.abortTransaction();
+//     return res
+//       .status(400)
+//       .json(new ApiResponse(400, null, error.message, false));
+//   } finally {
+//     session.endSession();
+//   }
+// });

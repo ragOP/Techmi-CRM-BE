@@ -4,8 +4,34 @@ const ApiResponse = require("../../utils/ApiResponse");
 const { uploadSingleFile } = require("../../utils/upload");
 
 const getAllTestimonials = asyncHandler(async (req, res) => {
-  const testimonials = await Testimonial.find().sort({ createdAt: -1 });
-  res.json(new ApiResponse(200, testimonials, "Testimonials fetched", true));
+  const { search = "", page = 1, per_page = 50 } = req.query;
+  const skip = (Number(page) - 1) * Number(per_page);
+  const limit = Number(per_page);
+
+  const filter = {};
+  if (search && search.trim() !== "") {
+    filter.$or = [
+      { customer_name: { $regex: search, $options: "i" } },
+      { message: { $regex: search, $options: "i" } },
+    ];
+  }
+
+  const [testimonials, total] = await Promise.all([
+    Testimonial.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    Testimonial.countDocuments(filter),
+  ]);
+
+  res.json(
+    new ApiResponse(
+      200,
+      {
+        data: testimonials,
+        total,
+      },
+      "Testimonials fetched",
+      true
+    )
+  );
 });
 
 const getTestimonialById = asyncHandler(async (req, res) => {

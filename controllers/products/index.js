@@ -265,17 +265,12 @@ const exportProducts = asyncHandler(async (req, res) => {
       .json(new ApiResponse(400, null, "Unsupported file type", false));
   }
 
-  // Write buffer to a temp file
   const tempDir = os.tmpdir();
   const tempFilePath = path.join(tempDir, filename);
   await fs.writeFile(tempFilePath, buffer);
 
-  // Upload to Cloudinary
   const url = await uploadPDF(tempFilePath, "exports");
 
-  console.log("Cloudinary File URL:", url);
-
-  // Respond with the Cloudinary URL
   return res
     .status(200)
     .json(

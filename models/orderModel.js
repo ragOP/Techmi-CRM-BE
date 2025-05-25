@@ -109,6 +109,10 @@ const OrderSchema = new mongoose.Schema(
       ref: "Coupon",
       required: false,
     },
+    couponCode: {
+      type: String,
+      required: false,
+    },
     orderedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

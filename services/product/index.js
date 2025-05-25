@@ -18,7 +18,7 @@ const getAllProducts = async ({
   sort_by,
   start_date,
   end_date,
-  is_active
+  is_active,
 }) => {
   return await ProductsRepository.getAllProducts({
     page,
@@ -33,7 +33,7 @@ const getAllProducts = async ({
     sort_by,
     start_date,
     end_date,
-    is_active
+    is_active,
   });
 };
 
@@ -50,31 +50,35 @@ const createProduct = async (data, adminId) => {
       session,
     });
 
-    const inventory = await InventoryService.createInventory(
-      {
-        product_id: product._id,
-        quantity: quantity || 0,
-        last_modified_by: adminId,
-        last_modified_reason: "Initial stock on product creation",
-        last_restocked_at: new Date(),
-        low_stock_threshold: 5,
-      },
-      session
-    );
+    const productType = data.product_type || "product";
 
-    await InventoryHistoryService.createHistory(
-      {
-        product_id: product._id,
-        inventory_id: inventory._id,
-        change: Number(quantity) || 0,
-        old_quantity: 0,
-        new_quantity: Number(quantity) || 0,
-        action: "add",
-        reason: "Initial stock on product creation",
-        changed_by: adminId,
-      },
-      session
-    );
+    if (productType === "product") {
+      const inventory = await InventoryService.createInventory(
+        {
+          product_id: product._id,
+          quantity: quantity || 0,
+          last_modified_by: adminId,
+          last_modified_reason: "Initial stock on product creation",
+          last_restocked_at: new Date(),
+          low_stock_threshold: 5,
+        },
+        session
+      );
+
+      await InventoryHistoryService.createHistory(
+        {
+          product_id: product._id,
+          inventory_id: inventory._id,
+          change: Number(quantity) || 0,
+          old_quantity: 0,
+          new_quantity: Number(quantity) || 0,
+          action: "add",
+          reason: "Initial stock on product creation",
+          changed_by: adminId,
+        },
+        session
+      );
+    }
 
     await session.commitTransaction();
     session.endSession();
@@ -95,7 +99,9 @@ const updateProduct = async (id, data, adminId) => {
       session,
     });
 
-    if (quantity !== undefined) {
+    const productType = data.product_type || "product";
+
+    if (quantity !== undefined && productType === "product") {
       const inventory = await InventoryService.getInventoryByProductId(
         id,
         session
@@ -105,29 +111,31 @@ const updateProduct = async (id, data, adminId) => {
         const oldQty = Number(inventory.quantity);
         const newQty = oldQty + Number(quantity);
 
-        await InventoryService.updateInventory(
-          inventory._id,
-          {
-            quantity: newQty,
-            last_modified_by: adminId,
-            last_modified_reason: "Stock updated on product update",
-          },
-          session
-        );
+        if (newQty !== oldQty) {
+          await InventoryService.updateInventory(
+            inventory._id,
+            {
+              quantity: newQty,
+              last_modified_by: adminId,
+              last_modified_reason: "Stock updated on product update",
+            },
+            session
+          );
 
-        await InventoryHistoryService.createHistory(
-          {
-            product_id: product._id,
-            inventory_id: inventory._id,
-            change: Number(quantity),
-            old_quantity: oldQty,
-            new_quantity: newQty,
-            action: Number(quantity) > 0 ? "add" : "remove",
-            reason: "Stock updated on product update",
-            changed_by: adminId,
-          },
-          session
-        );
+          await InventoryHistoryService.createHistory(
+            {
+              product_id: product._id,
+              inventory_id: inventory._id,
+              change: Number(quantity),
+              old_quantity: oldQty,
+              new_quantity: newQty,
+              action: Number(quantity) > 0 ? "add" : "remove",
+              reason: "Stock updated on product update",
+              changed_by: adminId,
+            },
+            session
+          );
+        }
       } else {
         const newInventory = await InventoryService.createInventory(
           {
@@ -169,6 +177,9 @@ const updateProduct = async (id, data, adminId) => {
 
 const deleteProduct = async (id) => {
   await ProductsRepository.deleteProduct(id);
+
+  await InventoryService.deleteInventoryByProductId(id);
+  await InventoryHistoryService.deleteHistoryByProductId(id);
 };
 
 const getProductsByAdmin = async ({

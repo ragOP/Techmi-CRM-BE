@@ -17,9 +17,20 @@ const getAllHistory = (filters = {}, options = {}) =>
     .sort({ createdAt: -1 })
     .limit(options.limit || 100);
 
+const countHistory = (filters = {}) => InventoryHistory.countDocuments(filters);
+
+const deleteHistoryByProductId = (productId) =>
+  InventoryHistory.deleteMany({ product_id: productId });
+
+const deleteHistoryByInventoryId = (inventoryId) =>
+  InventoryHistory.deleteMany({ inventory_id: inventoryId });
+
 module.exports = {
   createHistory,
   getHistoryByProduct,
   getHistoryByInventory,
   getAllHistory,
+  countHistory,
+  deleteHistoryByProductId,
+  deleteHistoryByInventoryId
 };

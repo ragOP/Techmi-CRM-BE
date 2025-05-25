@@ -50,16 +50,21 @@ const getAllHistory = asyncHandler(async (req, res) => {
 
 const getHistoryByProduct = asyncHandler(async (req, res) => {
   const { productId } = req.params;
-  const { page = 1, per_page = 50 } = req.query;
+  const { page = 1, per_page = 50, search = "" } = req.query;
   if (!mongoose.Types.ObjectId.isValid(productId)) {
     return res.json(new ApiResponse(400, null, "Invalid product ID", false));
   }
   const skip = (Number(page) - 1) * Number(per_page);
   const limit = Number(per_page);
 
+  const filters = { product_id: productId };
+  if (search && search.trim() !== "") {
+    filters.reason = { $regex: search, $options: "i" };
+  }
+
   const [history, total] = await Promise.all([
-    InventoryHistoryService.getHistoryByProduct(productId, { skip, limit }),
-    InventoryHistoryService.countHistory({ product_id: productId }),
+    InventoryHistoryService.getAllHistory(filters, { skip, limit }),
+    InventoryHistoryService.countHistory(filters),
   ]);
 
   res.json(

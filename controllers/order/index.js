@@ -19,8 +19,39 @@ const { sendEmail } = require("../../helpers/email");
 const Inventory = require("../../models/inventoryModel");
 const Transaction = require("../../models/transactionModel");
 const HSNCode = require("../../models/hsncodeModel");
+const { CASHFREE_URL } = require("../payment");
+const axios = require("axios");
 
 const ORIGIN_STATE_CODE = "GJ";
+
+async function fetchCashfreePaymentDetails(orderId) {
+  try {
+    const response = await axios.get(
+      `${CASHFREE_URL}/orders/${orderId}/payments`,
+      {
+        headers: {
+          "x-client-id": process.env.CASHFREE_CLIENT_ID,
+          "x-client-secret": process.env.CASHFREE_SECRET_KEY,
+          Accept: "application/json",
+          "x-api-version": "2025-01-01",
+        },
+      }
+    );
+    console.log("Cashfree Payment Details Response:", response.data);
+    // Return the first payment entity if available, else null
+    const paymentData = response.data?.[0] || null;
+    return { success: true, paymentData };
+  } catch (error) {
+    console.error(
+      "Error fetching payment details:",
+      error.response?.data || error
+    );
+    return {
+      success: false,
+      error: error.message || "Failed to fetch payment details",
+    };
+  }
+}
 
 const getAllOrders = asyncHandler(async (req, res) => {
   const adminId = req.admin._id;
@@ -733,15 +764,11 @@ const createOrder = asyncHandler(async (req, res) => {
       // Proportionally distribute coupon discount to this item
       let itemCouponDiscount = 0;
 
-      console.log(1111111111, discountedPrice, itemCouponDiscount);
-
       if (discountedPrice > 0 && couponDiscountAmount > 0) {
         itemCouponDiscount =
           (itemTotal / discountedPrice) * couponDiscountAmount;
       }
       const itemDiscountedAfterCoupon = itemTotal - itemCouponDiscount;
-
-      console.log(22222222222222, discountedPrice, itemCouponDiscount);
 
       // Tax/Cess calculation on coupon-adjusted price
       let itemTaxRate = 0;
@@ -815,6 +842,35 @@ const createOrder = asyncHandler(async (req, res) => {
 
     // Save order and clear cart
     await order.save({ session });
+
+    const { success, paymentData } = await fetchCashfreePaymentDetails(orderId);
+    console.log("paymentData", paymentData);
+
+    let paymentStatus = "pending";
+    let paymentMethod = "cashfree";
+    let paymentTxnId = order.cashfree_order?.id || null;
+
+    if (success && paymentData) {
+      paymentStatus = paymentData.payment_status?.toLowerCase() || "pending";
+      paymentMethod = paymentData.payment_group || "cashfree";
+      paymentTxnId =
+        paymentData.payment_gateway_details?.gateway_payment_id || paymentTxnId;
+    }
+
+    console.log(
+      paymentData,
+      {
+        order: order._id,
+        user: order.user,
+        type: "payment",
+        amount: order.discountedPriceAfterCoupon,
+        payment_method: paymentMethod,
+        status: paymentStatus,
+        transaction_id: orderId || null,
+      },
+      ">>>>>>>>>>>>>>>>>>>>> Transaction Details"
+    );
+
     await Transaction.create(
       [
         {
@@ -822,9 +878,9 @@ const createOrder = asyncHandler(async (req, res) => {
           user: order.user,
           type: "payment",
           amount: order.discountedPriceAfterCoupon,
-          payment_method: "cashfree",
-          status: "success",
-          transaction_id: order.cashfree_order?.id || null,
+          payment_method: paymentMethod,
+          status: paymentStatus,
+          transaction_id: paymentTxnId || null,
         },
       ],
       { session }
@@ -1021,7 +1077,7 @@ const exportOrders = asyncHandler(async (req, res) => {
           );
       }
 
-      query["items.product"] = { $in: productIds };
+      query["items.product._id"] = { $in: productIds };
     }
 
     // Search filter
@@ -1033,7 +1089,7 @@ const exportOrders = asyncHandler(async (req, res) => {
       query["$or"] = [
         { orderNumber: { $regex: search, $options: "i" } },
         { "customer.name": { $regex: search, $options: "i" } },
-        { "items.product": { $in: productIdsByName } },
+        { "items.product._id": { $in: productIdsByName } },
       ];
     }
 
@@ -1046,32 +1102,90 @@ const exportOrders = asyncHandler(async (req, res) => {
 
     // Populate the necessary fields
     const orders = await Order.find(query)
-      .populate("items.product")
-      .populate("customer")
       .sort({ createdAt: -1 })
+      .populate("user")
       .lean();
 
+    const orderIds = orders.map((order) => order._id);
+    const transactions = await Transaction.find({
+      order: { $in: orderIds },
+    }).lean();
+
+    const transactionMap = {};
+    transactions.forEach((txn) => {
+      transactionMap[txn.order.toString()] = txn;
+    });
+
     const serializedOrders = orders.map((order) => {
+      // Combine product details into comma-separated strings
+      const productNames = (order.items || [])
+        .map((item) => item.product?.name || "N/A")
+        .join(", ");
+      const productIds = (order.items || [])
+        .map((item) => item.product?._id?.toString() || "")
+        .join(", ");
+      const quantities = (order.items || [])
+        .map((item) => item.quantity || 0)
+        .join(", ");
+      const productPrices = (order.items || [])
+        .map((item) => item.product?.price || 0)
+        .join(", ");
+      const discountedProductPrices = (order.items || [])
+        .map((item) => item.product?.discounted_price || 0)
+        .join(", ");
+      const taxAmounts = (order.items || [])
+        .map((item) => item.tax_amount || 0)
+        .join(", ");
+      const cessAmounts = (order.items || [])
+        .map((item) => item.cess_amount || 0)
+        .join(", ");
+      const couponDiscounts = (order.items || [])
+        .map((item) => item.coupon_discount || 0)
+        .join(", ");
+      const totalItemAmounts = (order.items || [])
+        .map((item) => item.total_amount || 0)
+        .join(", ");
+
+      const txn = transactionMap[order._id.toString()];
+      const paymentStatus = txn ? txn.status : "";
+
       return {
-        id: order._id?.toString() || "",
-        orderNumber: order.orderNumber || "",
-        customerName: order.customer?.name || "",
-        customerEmail: order.customer?.email || "",
-        customerPhone: order.customer?.phone || "",
-        items: (order.items || []).map((item) => ({
-          productName: item.product?.name || "N/A",
-          quantity: item.quantity || 0,
-          price: item.price || 0,
-        })),
-        totalAmount: order.totalAmount || 0,
-        status: order.status || "",
-        paymentStatus: order.paymentStatus || "",
-        createdAt: order.createdAt
+        orderId: order._id?.toString() || "",
+        orderStatus: order.status || "",
+        paymentStatus,
+        paymentMethod: txn ? txn.payment_method : "",
+        transactionId: txn ? txn.transaction_id : "",
+        orderDate: order.createdAt
           ? new Date(order.createdAt).toISOString()
           : "",
         updatedAt: order.updatedAt
           ? new Date(order.updatedAt).toISOString()
           : "",
+        totalAmount: order.totalAmount || 0,
+        discountedPrice: order.discountedPrice || 0,
+        discountedPriceAfterCoupon: order.discountedPriceAfterCoupon || 0,
+        priceAfterTax: order.priceAfterTax || 0,
+        couponCode: order.coupon?.code || "",
+        couponDiscount: order.coupon?.discountAmount || 0,
+        paymentId: order.cashfree_order?.id || "",
+        customerId: order.user?._id?.toString() || "",
+        customerName: order.user?.name || order.address?.name || "",
+        customerEmail: order.user?.email || "",
+        customerPhone: order.user?.phone || order.address?.mobile || "",
+        shippingAddress: order.address
+          ? `${order.address.address || ""}, ${order.address.locality || ""}, ${
+              order.address.city || ""
+            }, ${order.address.state || ""} - ${order.address.pincode || ""}`
+          : "",
+        productIds,
+        productNames,
+        quantities,
+        productPrices,
+        discountedProductPrices,
+        taxAmounts,
+        cessAmounts,
+        couponDiscounts,
+        totalItemAmounts,
       };
     });
 
@@ -1643,7 +1757,9 @@ const buyNowOrder = asyncHandler(async (req, res) => {
         tax_amount: itemTaxAmount,
         coupon_discount: itemCouponDiscount,
         cess_amount: itemCessAmount,
-        total_amount: itemDiscountedAfterCoupon + itemTaxAmount + itemCessAmount,
+        coupon_code: couponDetails ? couponDetails.code : null,
+        total_amount:
+          itemDiscountedAfterCoupon + itemTaxAmount + itemCessAmount,
       },
     ];
 
@@ -1666,7 +1782,9 @@ const buyNowOrder = asyncHandler(async (req, res) => {
       coupon: couponDetails,
       orderedBy: userId,
       couponId: couponId,
-      priceAfterTax: discountedPriceAfterCoupon + itemTaxAmount + itemCessAmount,
+      couponCode: couponDetails ? couponDetails.code : null,
+      priceAfterTax:
+        discountedPriceAfterCoupon + itemTaxAmount + itemCessAmount,
       cashfree_order: { id: orderId },
     });
 

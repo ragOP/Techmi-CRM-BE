@@ -16,9 +16,19 @@ const getAllHistory = async (filters = {}, options = {}) => {
   return InventoryHistoryRepository.getAllHistory(filters, options);
 };
 
+const countHistory = async (filters = {}) => {
+  return InventoryHistoryRepository.countHistory(filters);
+};
+
+const deleteHistoryByProductId = async (productId) => {
+  return InventoryHistoryRepository.deleteHistoryByProductId(productId);
+}
+
 module.exports = {
   createHistory,
   getHistoryByProduct,
   getHistoryByInventory,
   getAllHistory,
+  countHistory,
+  deleteHistoryByProductId
 };

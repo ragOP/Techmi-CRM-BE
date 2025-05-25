@@ -45,6 +45,15 @@ const attachInventoryToProducts = async (products) => {
   return productsWithInventory;
 };
 
+const deleteInventoryByProductId = async (productId) => {
+  const inventory = await InventoryRepository.getInventoryByProductId(
+    productId
+  );
+  if (inventory) {
+    await InventoryRepository.deleteInventory(inventory._id);
+  }
+};
+
 module.exports = {
   getAllInventories,
   getInventoryById,
@@ -54,4 +63,5 @@ module.exports = {
   attachInventoryToProducts,
   getInventoryByProductId,
   getProductsWithInventory,
+  deleteInventoryByProductId,
 };

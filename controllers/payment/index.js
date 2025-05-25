@@ -14,11 +14,16 @@ const createCashfreeSession = async (req, res) => {
       customerPhone,
       orderedForUser,
       orderType = "normal",
+      url,
     } = req.body;
 
     const orderId = "order_" + Date.now();
     console.log("Creating Cashfree session with orderId:", orderId);
-    let returnUrl = `http://localhost:3000/cart?orderId=${orderId}&addressId=${addressId}&cartId=${cartId}&orderType=${orderType}`;
+
+    const cartUrl = "http://localhost:3000/cart";
+    const finalUrl = url ? url : cartUrl;
+
+    let returnUrl = `${finalUrl}?orderId=${orderId}&addressId=${addressId}&cartId=${cartId}&orderType=${orderType}`;
     if (couponId) {
       returnUrl += `&couponId=${couponId}`;
     }

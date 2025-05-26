@@ -1341,7 +1341,15 @@ const buyNowOrder = asyncHandler(async (req, res) => {
   let committed = false;
 
   try {
-    const { productId, quantity, addressId, orderId, couponId } = req.body;
+    const {
+      productId,
+      quantity,
+      addressId,
+      orderId,
+      couponId,
+      orderedBy,
+      orderedForUser,
+    } = req.body;
     const userId = req.user._id;
     const role = req.user.role;
 
@@ -1352,6 +1360,9 @@ const buyNowOrder = asyncHandler(async (req, res) => {
       throw new Error("Invalid addressId");
     if (!quantity || quantity <= 0)
       throw new Error("Quantity must be greater than 0");
+
+    if (orderedBy) validateId(orderedBy, "orderedBy");
+    if (orderedForUser) validateId(orderedForUser, "orderedForUser");
 
     // Fetch product
     const product = await Product.findById(productId).session(session);
@@ -1376,11 +1387,20 @@ const buyNowOrder = asyncHandler(async (req, res) => {
       await inventory.save({ session });
     }
 
-    // Fetch address
-    const address = await Address.findOne({
-      _id: addressId,
-      user: userId,
-    }).session(session);
+    let address;
+    if (orderedBy) {
+      address = await Address.findOne({
+        user: orderedForUser,
+        isPrimary: true,
+      }).session(session);
+      if (!address)
+        throw new Error("No primary address found for the ordered user");
+    } else {
+      address = await Address.findOne({ _id: addressId, user: userId }).session(
+        session
+      );
+    }
+
     if (!address) throw new Error("Address not found");
 
     // Calculate price
@@ -1517,7 +1537,7 @@ const buyNowOrder = asyncHandler(async (req, res) => {
 
     // Create order
     const order = new Order({
-      user: userId,
+      user: orderedForUser ? orderedForUser : userId,
       items: orderItems,
       address: addressSnapshot,
       totalAmount: totalAmount,

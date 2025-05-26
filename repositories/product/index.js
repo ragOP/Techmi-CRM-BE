@@ -195,7 +195,6 @@ const getAllProducts = async ({
   const total = await Product.countDocuments(filter);
 
   const productsWithInventory = await attachInventoryToProducts(products);
-
   return {
     data: productsWithInventory,
     total,

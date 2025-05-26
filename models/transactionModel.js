@@ -12,7 +12,7 @@ const TransactionSchema = new mongoose.Schema(
     amount: { type: mongoose.Schema.Types.Decimal128, required: true },
     payment_method: {
       type: String,
-      enum: ["cod", "cashfree", "upi", "card", "netbanking", "wallet", "other"],
+      enum: ["cod", "cashfree", "upi", "card", "net_banking", "wallet", "other"],
       required: true,
     },
     status: {

@@ -1,6 +1,12 @@
 const axios = require("axios");
 
+function isDev() {
+  return process.env.NODE_ENV !== "production";
+}
+
 const CASHFREE_URL = "https://sandbox.cashfree.com/pg";
+const LOCALHOST_URL = "http://localhost:3000/payment-processing";
+const WEB_PROD_URL = "http://fe-techmi-cre.vercel.app";
 
 const createCashfreeSession = async (req, res) => {
   try {
@@ -20,9 +26,10 @@ const createCashfreeSession = async (req, res) => {
     } = req.body;
 
     const orderId = "order_" + Date.now();
-    console.log("Creating Cashfree session with orderId:", orderId);
 
-    const cartUrl = "http://localhost:3000/cart";
+    const cartUrl = isDev()
+      ? "http://localhost:3000/payment-processing"
+      : "https://fe-techmi-cre.vercel.app/payment-processing";
     const finalUrl = url ? url : cartUrl;
 
     let returnUrl = `${finalUrl}?orderId=${orderId}&addressId=${addressId}&orderType=${orderType}`;

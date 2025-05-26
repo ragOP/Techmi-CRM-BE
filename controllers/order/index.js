@@ -37,7 +37,6 @@ async function fetchCashfreePaymentDetails(orderId) {
         },
       }
     );
-    console.log("Cashfree Payment Details Response:", response.data);
     // Return the first payment entity if available, else null
     const paymentData = response.data?.[0] || null;
     return { success: true, paymentData };
@@ -351,7 +350,7 @@ const validateId = (id, name) => {
   }
 };
 
-const createOrder = asyncHandler(async (req, res) => {
+const createOrder = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -511,7 +510,6 @@ const createOrder = asyncHandler(async (req, res) => {
       }
       const itemDiscountedAfterCoupon = itemTotal - itemCouponDiscount;
 
-      // Tax/Cess calculation on coupon-adjusted price
       let itemTaxRate = 0;
       let itemCessRate = 0;
       let hsn = null;
@@ -585,7 +583,6 @@ const createOrder = asyncHandler(async (req, res) => {
     await order.save({ session });
 
     const { success, paymentData } = await fetchCashfreePaymentDetails(orderId);
-    console.log("paymentData", paymentData);
 
     let paymentStatus = "pending";
     let paymentMethod = "cashfree";
@@ -597,20 +594,6 @@ const createOrder = asyncHandler(async (req, res) => {
       paymentTxnId =
         paymentData.payment_gateway_details?.gateway_payment_id || paymentTxnId;
     }
-
-    console.log(
-      paymentData,
-      {
-        order: order._id,
-        user: order.user,
-        type: "payment",
-        amount: order.discountedPriceAfterCoupon,
-        payment_method: paymentMethod,
-        status: paymentStatus,
-        transaction_id: orderId || null,
-      },
-      ">>>>>>>>>>>>>>>>>>>>> Transaction Details"
-    );
 
     await Transaction.create(
       [
@@ -632,20 +615,40 @@ const createOrder = asyncHandler(async (req, res) => {
 
     await session.commitTransaction();
 
-    await generateOrderBill(order, req.user);
+    let emailSent = true;
+    try {
+      await generateOrderBill(order, req.user);
+    } catch (emailError) {
+      console.error("Order placed, but email sending failed:", emailError);
+      emailSent = false;
+    }
 
-    return res
-      .status(201)
-      .json(new ApiResponse(201, order, "Order created successfully", true));
+    return res.status(201).json(
+      new ApiResponse(
+        201,
+        {
+          orderPlaced: true,
+          order,
+          emailSent,
+        },
+        emailSent
+          ? "Order created and email sent successfully"
+          : "Order created, but failed to send email",
+        true
+      )
+    );
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+
     return res
       .status(400)
       .json(new ApiResponse(400, null, error.message, false));
   } finally {
     session.endSession();
   }
-});
+};
 
 const getOrderHistory = asyncHandler(async (req, res) => {
   try {
@@ -997,7 +1000,7 @@ const exportOrders = asyncHandler(async (req, res) => {
   }
 });
 
-const generateOrderBill = asyncHandler(async (newOrder, user) => {
+const generateOrderBill = async (newOrder, user) => {
   const { id } = newOrder;
 
   if (!user) {
@@ -1333,12 +1336,11 @@ const generateOrderBill = asyncHandler(async (newOrder, user) => {
   };
   await sendEmail(emailOptions);
   return true;
-});
+};
 
 const buyNowOrder = asyncHandler(async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
-  let committed = false;
 
   try {
     const {
@@ -1570,17 +1572,34 @@ const buyNowOrder = asyncHandler(async (req, res) => {
     );
 
     await session.commitTransaction();
-    committed = true;
 
-    await generateOrderBill(order, req.user);
+    let emailSent = true;
+    try {
+      await generateOrderBill(order, req.user);
+    } catch (emailError) {
+      console.error("Order placed, but email sending failed:", emailError);
+      emailSent = false;
+    }
 
-    return res
-      .status(201)
-      .json(new ApiResponse(201, order, "Order placed successfully", true));
+    return res.status(201).json(
+      new ApiResponse(
+        201,
+        {
+          orderPlaced: true,
+          order,
+          emailSent,
+        },
+        emailSent
+          ? "Order created and email sent successfully"
+          : "Order created, but failed to send email",
+        true
+      )
+    );
   } catch (error) {
-    if (!committed) {
+    if (session.inTransaction()) {
       await session.abortTransaction();
     }
+
     return res
       .status(400)
       .json(new ApiResponse(400, null, error.message, false));

@@ -5,7 +5,11 @@ const AppBannerSchema = new mongoose.Schema(
     banner: [
       {
         name: String,
-        url: String
+        url: String,
+        product: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+        },
       }
     ]
   },

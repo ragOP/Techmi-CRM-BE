@@ -1,7 +1,8 @@
 const appBannerModel = require("../../models/appBannerModel");
 
 const getAllAppBanner = async () => {
-  return await appBannerModel.find();
+  const result = await appBannerModel.find({});
+  return result
 };
 
 const updateAppBanners = async (dataTOAddTODb) => {
@@ -11,7 +12,7 @@ const updateAppBanners = async (dataTOAddTODb) => {
   }
 
     // Rebuild banner array properly
-  const { name = [], url = [] } = dataTOAddTODb;
+  const { name = [], url = [], product } = dataTOAddTODb;
 
   if (name.length !== url.length) {
     throw new Error("Name and URL array lengths do not match.");
@@ -19,7 +20,8 @@ const updateAppBanners = async (dataTOAddTODb) => {
 
   const bannerData = name.map((n, i) => ({
     name: n,
-    url: url[i]
+    url: url[i],
+    product
   }));
 
    appBanner.banner = [...appBanner.banner, ...bannerData];

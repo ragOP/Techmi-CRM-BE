@@ -6,6 +6,7 @@ const ApiResponse = require("../../utils/ApiResponse");
 const getAllAppBanner = async (req, res) => {
   try {
     const appBanners = await fetchAllAppBanner();
+    console.log(appBanners.banner)
     res.status(200).json({ success: true, data: appBanners });
   } catch (error) {
     res.status(500).json({
@@ -33,9 +34,12 @@ const updateAppBanners = async (req, res) => {
       namesOfFiles.push(req.files[i].originalname);
     }
 
+    console.log(req.body.product)
+
     const dataTOAddTODb = {
       url: imageUrls,
-      name: namesOfFiles
+      name: namesOfFiles,
+      product: req.body.product
     };
 
      const appBanners = await modifyAllAppBanner(dataTOAddTODb);

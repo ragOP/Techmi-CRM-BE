@@ -362,7 +362,9 @@ const createOrder = async (req, res) => {
     const currentUserId = orderedBy ? orderedForUser : userId;
 
     validateId(cartId, "cart");
-    validateId(addressId, "address");
+    if (!orderedForUser) {
+      validateId(addressId, "address");
+    }
     validateId(couponId, "coupon");
     validateId(userId, "userId");
     if (orderedBy) validateId(orderedBy, "orderedBy");
@@ -1358,7 +1360,7 @@ const buyNowOrder = asyncHandler(async (req, res) => {
     // Validate IDs
     if (!mongoose.Types.ObjectId.isValid(productId))
       throw new Error("Invalid productId");
-    if (!mongoose.Types.ObjectId.isValid(addressId))
+    if (!orderedForUser && !mongoose.Types.ObjectId.isValid(addressId))
       throw new Error("Invalid addressId");
     if (!quantity || quantity <= 0)
       throw new Error("Quantity must be greater than 0");
@@ -1391,6 +1393,10 @@ const buyNowOrder = asyncHandler(async (req, res) => {
 
     let address;
     if (orderedBy) {
+      const addresses = await Address.find({
+        user: orderedForUser,
+      }).session(session);
+      console.log("orderedForUser,", orderedForUser, addresses);
       address = await Address.findOne({
         user: orderedForUser,
         isPrimary: true,

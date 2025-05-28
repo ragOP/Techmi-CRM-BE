@@ -23,15 +23,27 @@ const updatePharmaInternalPage = async (req, res) => {
 
     if (req.files) {
       if (field === "flyer1" || field === "aboutUsImage") {
+        // Single file fields
         const tempValue = await uploadMultipleFiles(
           req.files,
           "uploads/images"
         );
         value = tempValue[0];
+      } else if (field === "sliderImages") {
+        // Multiple files for slider
+        const uploadedFiles = await uploadMultipleFiles(req.files, "uploads/images");
+        
+        // Get existing slider images
+        const currentConfig = await getPharmaInternalPage(); // Assuming you have this function
+        const existingSliderImages = currentConfig?.sliderImages || [];
+        
+        // Append new images to existing ones
+        value = [...existingSliderImages, ...uploadedFiles];
       } else {
         value = await uploadMultipleFiles(req.files, "uploads/images");
       }
     }
+
     if (!field || value === undefined) {
       return res
         .status(400)
@@ -52,5 +64,4 @@ const updatePharmaInternalPage = async (req, res) => {
     });
   }
 };
-
 module.exports = { getPharmaInternalPage, updatePharmaInternalPage };

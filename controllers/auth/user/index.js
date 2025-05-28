@@ -164,6 +164,35 @@ const getUserById = asyncHandler(async (req, res) => {
   res.json(new ApiResponse(200, user, "User fetched successfully", true));
 });
 
+const updateUserDetails = asyncHandler(async (req, res) => {
+
+    // Allowed fields that can be updated by the user
+    const allowedUpdateFields = ['name', 'mobile_number'];
+
+    const userId = req.params.id;
+    const updates = req.body;
+    console.log(userId);
+    console.log(updates);
+    // Filter updates to only allowed fields
+    const updateFields = {};
+    allowedUpdateFields.forEach(field => {
+      if (updates.hasOwnProperty(field)) {
+        updateFields[field] = updates[field];
+      }
+    });
+    if (Object.keys(updateFields).length === 0) {
+      return res.json(new ApiResponse(400, null, "No fields to update", false));
+    }
+    const updatedUser = await User.findByIdAndUpdate(userId, updateFields, {
+      new: true,
+      runValidators: true,
+    });
+    if (!updatedUser) {
+      return res.json(new ApiResponse(404, null, "User not found", false));
+    }
+    return res.json(new ApiResponse(200, updatedUser, "User details updated successfully", true));
+});
+
 const getUsersByRole = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { role } = req.query;
@@ -421,6 +450,7 @@ module.exports = {
   updateUser,
   deleteUser,
   getUserById,
+  updateUserDetails,
   getUsersByRole,
   exportUsers,
   forgotPassword,

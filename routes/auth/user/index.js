@@ -6,6 +6,7 @@ const {
   deleteUser,
   loginUser,
   getUserById,
+  updateUserDetails,
   getUsersByRole,
   exportUsers,
   forgotPassword,
@@ -26,6 +27,8 @@ router.post("/reset-password/:token", resetPassword);
 router.get("/role", user, getUsersByRole);
 router.get("/export", superAdmin, exportUsers);
 router.get("/:id", getUserById);
+// route to update user details
+router.put("/:id", user, updateUserDetails);
 router.patch("/:id", adminOrSuperAdmin, updateUser);
 router.delete("/:id", adminOrSuperAdmin, deleteUser);
 

@@ -53,6 +53,10 @@ const OrderItemSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Decimal128,
     default: 0,
   },
+  prescription: {
+    type: String,
+    default: null,
+  },
 });
 
 const OrderAddressSchema = new mongoose.Schema({

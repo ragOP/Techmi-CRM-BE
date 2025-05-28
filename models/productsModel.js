@@ -109,6 +109,10 @@ const ProductSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Admin",
     },
+    is_prescription_required: {
+      type: Boolean,
+      default: false,
+    },
     product_type: {
       type: String,
       enum: ["service", "product"],

@@ -28,7 +28,7 @@ const createCashfreeSession = async (req, res) => {
     const orderId = "order_" + Date.now();
 
     const cartUrl = isDev()
-      ? "http://localhost:3000/payment-processing"
+      ? "https://fe-techmi-cre.vercel.app/payment-processing"
       : "https://fe-techmi-cre.vercel.app/payment-processing";
     const finalUrl = url ? url : cartUrl;
 

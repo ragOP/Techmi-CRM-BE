@@ -58,7 +58,7 @@ const getBlogs = asyncHandler(async (req, res) => {
     ...(featured && { isFeatured: featured === "true" }),
     ...(published && { published: published === "true" }),
   };
-  
+
   const blogs = await BlogRepositories.getAllBlogs({
     filters,
     page: parseInt(page),
@@ -66,7 +66,7 @@ const getBlogs = asyncHandler(async (req, res) => {
   });
 
   if (!blogs || blogs.length === 0) {
-    return next(new ApiError(404, "No blogs found"));
+    return new ApiResponse(404, [], "No blogs found", false);
   }
 
   return res.json(

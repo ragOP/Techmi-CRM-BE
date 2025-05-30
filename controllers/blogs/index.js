@@ -66,7 +66,7 @@ const getBlogs = asyncHandler(async (req, res) => {
   });
 
   if (!blogs || blogs.length === 0) {
-    return new ApiResponse(404, [], "No blogs found", false);
+    return new ApiResponse(201, [], "No blogs found", false);
   }
 
   return res.json(

@@ -38,6 +38,7 @@ const termsConditionRoutes = require("./routes/terms_condition/index.js");
 const privacyPolicyRoutes = require("./routes/privacy_policy/index.js");
 const faqRoutes = require("./routes/faq/index.js");
 const testimonialRoutes = require("./routes/testimonials/index.js");
+const petCaartRoutes = require("./routes/pet_caart/index.js");
 
 // Connect DB
 connectDB();
@@ -81,6 +82,7 @@ app.use("/api/terms-condition", termsConditionRoutes);
 app.use("/api/privacy-policy", privacyPolicyRoutes);
 app.use("/api/faq", faqRoutes);
 app.use("/api/testimonials", testimonialRoutes);
+app.use("/api/pet-caart", petCaartRoutes);
 
 // Documentation (Development)
 app.use("/api-doc", swaggerUI.serve, swaggerUI.setup(swaggerSpec));
